@@ -46,6 +46,20 @@ Informe a senha do sandbox e abra http://127.0.0.1:8000. Para produção, utiliz
 
 Painel Flask para consultar relatórios Cisco ACI no APIC, com filtros locais e exportação CSV.
 
+
+<img width="1427" height="883" alt="image" src="https://github.com/user-attachments/assets/49c0225c-71bb-4815-a780-ab31941291d3" />
+
+<img width="1596" height="682" alt="image" src="https://github.com/user-attachments/assets/90faca6d-b26d-4f99-a12d-0198ec77cecc" />
+
+<img width="1392" height="647" alt="image" src="https://github.com/user-attachments/assets/2e0f6028-7a3d-4e55-8b7e-0e52303e5035" />
+
+<img width="1293" height="758" alt="image" src="https://github.com/user-attachments/assets/5ec9c617-145a-49ef-bf22-1d385104f93f" />
+
+<img width="1286" height="652" alt="image" src="https://github.com/user-attachments/assets/c9e581ce-65a8-4f6f-9ad1-1dc1c2fabeb3" />
+
+
+
+
 ## Instalação e execução
 
 Use Python 3.10 ou superior. Na pasta do projeto:
