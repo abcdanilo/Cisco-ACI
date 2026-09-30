@@ -1,0 +1,23 @@
+{% extends "diagnostics_base.html" %}
+{% block title %}Port-channel / vPC consolidado — ACI{% endblock %}
+{% block page %}portchannels{% endblock %}
+{% block scripts %}<link rel="stylesheet" href="/static/portchannels-table.css"><script src="{{ url_for('static', filename='portchannels.js') }}" defer></script>{% endblock %}
+{% block content %}
+<header><p class="eyebrow">INTERFACES / VPC PORTS</p><h1>Port-channel / vPC consolidado</h1><p>Uma linha por grupo lógico, com portas e estado de cada switch.</p></header>
+<section class="panel">
+  <form id="filters" class="lookup-form">
+    <label for="query">Pesquisar grupo, node ou interface<input id="query" type="search" placeholder="Nome do grupo, po10, eth1/1…" autocomplete="off"></label>
+    <label for="kind">Tipo<select id="kind" aria-label="Tipo"><option value="">Todos</option><option value="vpc">vPC</option><option value="pc">Port-channel</option><option value="unassociated">Não associado</option></select></label>
+    <label for="pod">Pod<select id="pod" aria-label="Pod"><option value="">Todos</option></select></label>
+    <label for="node">Node<select id="node"><option value="">Todos</option></select></label>
+    <label for="state">Estado do agregado<select id="state"><option value="">Todos</option><option value="up">UP em algum lado</option><option value="down">DOWN em algum lado</option></select></label>
+    <button type="button" id="refresh">Atualizar dados</button><button type="button" id="clear" class="secondary">Limpar filtros</button>
+  </form>
+  <p id="pathFilter" class="hint mono" hidden></p>
+</section>
+<div class="result-toolbar"><p id="status" role="status">Consultando fabric…</p><a id="export" class="button secondary" hidden>Exportar resultados CSV</a></div>
+<p id="warning" class="warning" role="alert" hidden></p>
+<p class="hint">Cada grupo reúne os nodes do caminho lógico. Sem deployment físico, a correlação usa nome exato, pod e node e fica sinalizada. Associações ambíguas permanecem separadas. “Parcial” não equivale a falha do protocolo vPC.</p>
+<p id="count" class="muted"></p>
+<section id="groups" aria-label="Grupos consolidados"></section>
+{% endblock %}

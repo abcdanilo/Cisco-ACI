@@ -1,0 +1,49 @@
+/* Shared semantic palette for the legacy reports and diagnostics pages. */
+:root[data-theme="dark"] { color-scheme: dark; --blue:#3d8bff; --cyan:#00d4ff; --green:#34d399; --yellow:#fbbf24; --orange:#fb923c; --red:#f87171; --purple:#a78bfa; }
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f0f4fb;
+  --surface: #ffffff;
+  --surface-2: #eaf0f8;
+  --surface2: #eaf0f8;
+  --surface-3: #dfe8f5;
+  --border: #c6d2e6;
+  --border-h: #8a9cb6;
+  --text: #172238;
+  --text-muted: #53647d;
+  --muted: #53647d;
+  --text-faint: #65748c;
+  --shadow: rgba(18,35,61,.12);
+  --grid: rgba(36,72,120,.04);
+  --blue: #185abd;
+  --accent-blue: #185abd;
+  --cyan: #006b80;
+  --green: #127454;
+  --green-dim: rgba(18,116,84,.09);
+  --yellow: #805b00;
+  --yellow-dim: rgba(128,91,0,.09);
+  --orange: #984900;
+  --orange-dim: rgba(152,73,0,.09);
+  --red: #b4233f;
+  --red-dim: rgba(180,35,63,.09);
+  --purple: #6842b4;
+  --purple-dim: rgba(104,66,180,.09);
+  --accent: var(--blue);
+  --accent-dim: rgba(24,90,189,.09);
+}
+:root[data-theme="light"][data-report-accent="green"] { --accent: var(--green); --accent-dim: var(--green-dim); }
+:root[data-theme="light"][data-report-accent="orange"] { --accent: var(--orange); --accent-dim: var(--orange-dim); }
+:root[data-theme="light"][data-report-accent="purple"] { --accent: var(--purple); --accent-dim: var(--purple-dim); }
+:root[data-theme="light"][data-report-accent="red"] { --accent: var(--red); --accent-dim: var(--red-dim); }
+.aci-theme-bar { display:flex; justify-content:flex-end; margin:0 0 16px; position:relative; z-index:2; }
+button.aci-theme-toggle {
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  flex-shrink:0; width:auto; padding:8px 14px; min-height:40px;
+  border:1px solid var(--border, #53647d); border-radius:24px;
+  background:var(--surface, #111728); color:var(--text, #e8edf5);
+  font:500 13px/1.4 system-ui, sans-serif; letter-spacing:normal;
+  cursor:pointer; white-space:nowrap;
+}
+button.aci-theme-toggle:hover { border-color:var(--accent, var(--blue, #66a5ff)); }
+button.aci-theme-toggle:focus-visible { outline:2px solid var(--accent, var(--blue, #66a5ff)); outline-offset:3px; }
+button.aci-theme-toggle [data-theme-icon] { font-size:18px; line-height:1; }

@@ -1,0 +1,20 @@
+{% extends "diagnostics_base.html" %}
+{% block title %}Histórico de eventos e alterações — ACI{% endblock %}
+{% block scripts %}<script src="/static/history.js" defer></script>{% endblock %}
+{% block content %}
+<h1>Histórico de eventos e alterações</h1>
+<p>Registros retidos pelo APIC. Alterações mostram auditoria de configuração; eventos mostram ocorrências do sistema. Não é um histórico local permanente nem um comparativo completo antes/depois.</p>
+<form id="historyForm" class="panel">
+<label>Tipo<select id="kind"><option value="audit">Alterações de configuração</option><option value="events">Eventos do sistema</option></select></label>
+<label>Início<input id="start" type="datetime-local" required></label>
+<label>Fim<input id="end" type="datetime-local" required></label>
+<label style="flex:1;min-width:200px">Buscar texto<input id="query" maxlength="120" placeholder="Ex.: ACC, nome do grupo, usuário ou código"></label>
+<label style="flex:1;min-width:200px">DN exato do objeto (opcional)<input id="dn" maxlength="1024" placeholder="uni/tn-exemplo"></label>
+<button id="search">Consultar</button>
+</form>
+<p class="muted">Datas no fuso do navegador, enviadas em UTC. Período máximo: 31 dias. Busca por texto parcial na descrição, objeto afetado, usuário e código (ACC e acc são equivalentes). O campo DN exato é opcional e restringe ainda mais os resultados.</p>
+<p id="historyStatus" role="status"></p><p id="historyError" class="warning" role="alert" hidden></p>
+<div id="historyRows"></div>
+<div class="result-toolbar"><button id="previous" class="secondary" disabled>Anterior</button><span id="pageLabel"></span><button id="next" class="secondary" disabled>Próxima</button></div>
+<p class="hint">Até 50 registros por página, do mais recente para o mais antigo. A retenção do APIC e mudanças nos logs podem afetar a paginação. Ausência de registros não prova ausência de alterações.</p>
+{% endblock %}

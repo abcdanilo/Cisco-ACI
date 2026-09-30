@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html data-report-accent="blue" lang="pt-BR">
+<head>
+  <script src="/static/theme.js"></script>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AEP — Interfaces Físicas</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root{
+      --bg:#0a0e1a;--surface:#111728;--surface-2:#1a2236;--surface-3:#202d45;
+      --border:rgba(255,255,255,0.07);--text:#e8edf5;--text-muted:#6b7a99;--text-faint:#3d4f6e;
+      --accent:#3d8bff;--accent-dim:rgba(61,139,255,0.12);
+      --green:#34d399;--green-dim:rgba(52,211,153,0.1);
+      --red:#f87171;--red-dim:rgba(248,113,113,0.1);
+      --yellow:#fbbf24;--yellow-dim:rgba(251,191,36,0.1);
+      --orange:#fb923c;--orange-dim:rgba(251,146,60,0.1);
+      --mono:'Space Mono',monospace;--sans:'DM Sans',sans-serif;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;}
+    body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(61,139,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(61,139,255,.03) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0;}
+    .page{position:relative;z-index:1;max-width:1600px;margin:0 auto;padding:40px 24px 80px;}
+
+    /* HEADER */
+    .page-header{margin-bottom:32px;animation:fadeDown .5s ease both;}
+    .breadcrumb-row{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--text-muted);margin-bottom:16px;}
+    .breadcrumb-row a{color:var(--accent);text-decoration:none;}
+    .breadcrumb-row a:hover{text-decoration:underline;}
+    .breadcrumb-sep{opacity:.4;}
+    h1{font-family:var(--mono);font-size:clamp(18px,3vw,28px);font-weight:700;letter-spacing:-.01em;}
+    h1 span{color:var(--accent);}
+    .header-sub{margin-top:6px;font-size:13px;font-weight:300;color:var(--text-muted);}
+
+    /* SUMMARY BAR */
+    .summary-bar{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
+    .sum-chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;padding:5px 12px;border-radius:100px;background:var(--surface);border:1px solid var(--border);color:var(--text-muted);}
+    .sum-chip b{color:var(--accent);}
+    .sum-chip.up  {background:var(--green-dim);color:var(--green);border-color:rgba(52,211,153,.3);}
+    .sum-chip.down{background:var(--red-dim);  color:var(--red);  border-color:rgba(248,113,113,.3);}
+
+    /* TOOLBAR */
+    .toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px;animation:fadeUp .4s .1s ease both;}
+    .search-wrap{position:relative;flex:1;min-width:200px;max-width:380px;}
+    .search-wrap svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none;}
+    .search-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--sans);font-size:13px;padding:9px 12px 9px 36px;transition:border-color .2s;outline:none;}
+    .search-input::placeholder{color:var(--text-muted);}
+    .search-input:focus{border-color:var(--accent);}
+
+    /* AEP filter select */
+    .aep-select{background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--mono);font-size:12px;padding:8px 12px;outline:none;cursor:pointer;max-width:260px;transition:border-color .2s;}
+    .aep-select:focus{border-color:var(--accent);}
+    .aep-select option{background:var(--surface-2);}
+
+    /* status pills */
+    .filter-pills{display:flex;gap:6px;}
+    .pill{font-family:var(--mono);font-size:10px;letter-spacing:.05em;padding:5px 12px;border-radius:100px;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text-muted);transition:all .15s;user-select:none;}
+    .pill:hover{color:var(--text);}
+    .pill.active-all {background:var(--accent-dim);color:var(--accent);border-color:rgba(61,139,255,.3);}
+    .pill.active-up  {background:var(--green-dim); color:var(--green); border-color:rgba(52,211,153,.3);}
+    .pill.active-down{background:var(--red-dim);   color:var(--red);   border-color:rgba(248,113,113,.3);}
+
+    .result-badge{font-family:var(--mono);font-size:11px;color:var(--text-muted);background:var(--surface);border:1px solid var(--border);padding:5px 12px;border-radius:100px;white-space:nowrap;}
+    .result-badge b{color:var(--accent);}
+    .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:10px;font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;border:none;text-decoration:none;transition:all .18s;}
+    .btn-export{background:var(--accent-dim);color:var(--accent);border:1px solid rgba(61,139,255,.3);}
+    .btn-export:hover{background:rgba(61,139,255,.2);}
+    .btn-back{background:var(--surface);color:var(--text-muted);border:1px solid var(--border);}
+    .btn-back:hover{color:var(--text);border-color:rgba(255,255,255,.15);}
+
+    /* TABLE */
+    .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;animation:fadeUp .4s .15s ease both;}
+    .table-scroll{overflow-x:auto;max-height:64vh;}
+    table{width:100%;border-collapse:collapse;font-size:13px;}
+    thead th{position:sticky;top:0;z-index:2;background:var(--surface-2);color:var(--text-muted);font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:12px 16px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none;}
+    thead th:hover{color:var(--text);}
+    thead th .si{opacity:.3;margin-left:4px;font-size:9px;}
+    thead th.asc .si::after{content:'▲';opacity:1;}
+    thead th.desc .si::after{content:'▼';opacity:1;}
+    thead th:not(.asc):not(.desc) .si::after{content:'⇅';}
+
+    /* ROW grouping — first row of each AEP group gets top border */
+    tbody tr{border-bottom:1px solid var(--border);transition:background .15s;}
+    tbody tr:last-child{border-bottom:none;}
+    tbody tr:hover{background:var(--surface-2);}
+    tbody tr.group-start td{border-top:2px solid rgba(61,139,255,.15);}
+
+    td{padding:10px 16px;color:var(--text-muted);vertical-align:middle;white-space:nowrap;}
+    td.aep-cell{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--accent);}
+    td.pg-cell {font-family:var(--mono);font-size:11px;color:var(--text-muted);}
+    td.path-cell{font-family:var(--mono);font-size:12px;color:var(--text);}
+    td.speed-cell{font-family:var(--mono);font-size:12px;color:var(--orange);}
+    td.descr-cell{font-size:13px;max-width:260px;overflow:hidden;text-overflow:ellipsis;}
+
+    /* AEP badge — repeated rows show a dimmer version */
+    .aep-badge{display:inline-flex;align-items:center;font-family:var(--mono);font-size:11px;padding:3px 9px;border-radius:100px;background:var(--accent-dim);color:var(--accent);border:1px solid rgba(61,139,255,.2);white-space:nowrap;}
+    .aep-badge.repeat{background:transparent;color:var(--text-faint);border-color:transparent;font-size:10px;}
+
+    .status-badge{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:100px;white-space:nowrap;}
+    .status-badge::before{content:'●';font-size:7px;}
+    .status-up  {background:var(--green-dim);color:var(--green);border:1px solid rgba(52,211,153,.2);}
+    .status-down{background:var(--red-dim);  color:var(--red);  border:1px solid rgba(248,113,113,.2);}
+    .status-none{background:var(--surface-2);color:var(--text-faint);border:1px solid var(--border);}
+
+    .empty-cell{opacity:.25;font-style:italic;}
+
+    .empty-state{padding:60px 20px;text-align:center;color:var(--text-muted);font-size:14px;}
+    .empty-state .icon{font-size:32px;margin-bottom:12px;opacity:.4;}
+    .loading{padding:60px 20px;text-align:center;}
+    .spinner{width:28px;height:28px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px;}
+    .loading-text{font-family:var(--mono);font-size:11px;color:var(--text-muted);letter-spacing:.1em;}
+
+    /* PAGINATION */
+    .pagination-row{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-top:1px solid var(--border);flex-wrap:wrap;gap:10px;}
+    .page-info{font-family:var(--mono);font-size:11px;color:var(--text-muted);}
+    .page-btns{display:flex;gap:4px;}
+    .page-btn{background:var(--surface-2);border:1px solid var(--border);color:var(--text-muted);font-family:var(--mono);font-size:11px;padding:5px 10px;border-radius:7px;cursor:pointer;transition:all .15s;min-width:32px;text-align:center;}
+    .page-btn:hover:not(:disabled){color:var(--text);border-color:rgba(255,255,255,.15);}
+    .page-btn.active{background:var(--accent-dim);color:var(--accent);border-color:rgba(61,139,255,.3);}
+    .page-btn:disabled{opacity:.3;cursor:not-allowed;}
+
+    @keyframes fadeDown{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes fadeUp  {from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)}}
+    @keyframes spin    {to{transform:rotate(360deg)}}
+    mark{background:rgba(61,139,255,.2);color:var(--accent);border-radius:2px;padding:0 1px;}
+    @media(max-width:600px){.page{padding:24px 14px 60px;}.toolbar{flex-direction:column;align-items:stretch;}.search-wrap{max-width:100%;}}
+  </style>
+  <link rel="stylesheet" href="/static/theme.css">
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <div class="breadcrumb-row">
+      <a href="/">Painel ACI</a><span class="breadcrumb-sep">/</span>
+      <span>Interfaces</span><span class="breadcrumb-sep">/</span>
+      <span>AEP — Interfaces Físicas</span>
+    </div>
+    <h1>AEP — <span>Interfaces Físicas</span></h1>
+    <p class="header-sub">Attachable Entity Profiles e suas interfaces físicas associadas via Policy Groups</p>
+    <div class="summary-bar" id="summaryBar">
+      <span class="sum-chip">Carregando…</span>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="search-wrap">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input id="searchInput" class="search-input" placeholder="Buscar AEP, policy group, interface, descrição…"/>
+    </div>
+
+    <select id="aepSelect" class="aep-select">
+      <option value="">Todos os AEPs</option>
+    </select>
+
+    <div class="filter-pills">
+      <span class="pill active-all" data-filter="all">TODOS</span>
+      <span class="pill" data-filter="up">UP</span>
+      <span class="pill" data-filter="down">DOWN</span>
+    </div>
+
+    <span class="result-badge" id="resultBadge"><b>—</b> interfaces</span>
+
+    <div style="display:flex;gap:8px;margin-left:auto">
+      <a class="btn btn-export" href="/export_csv/aep_interfaces">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Exportar CSV
+      </a>
+      <a class="btn btn-back" href="/">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>
+        Voltar
+      </a>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-scroll">
+      <table id="mainTable">
+        <thead><tr>
+          <th data-key="aep">AEP<span class="si"></span></th>
+          <th data-key="policy_group">Policy Group<span class="si"></span></th>
+          <th data-key="path">Pod / Node / Interface<span class="si"></span></th>
+          <th data-key="status">Status<span class="si"></span></th>
+          <th data-key="speed">Speed<span class="si"></span></th>
+          <th data-key="descr">Descrição<span class="si"></span></th>
+        </tr></thead>
+        <tbody id="tableBody">
+          <tr><td colspan="6"><div class="loading"><div class="spinner"></div><div class="loading-text">CONSULTANDO APIC…</div></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination-row">
+      <span class="page-info" id="pageInfo">—</span>
+      <div class="page-btns" id="pageBtns"></div>
+    </div>
+  </div>
+
+</div>
+<script src="/static/report-tools.js"></script>
+<script>
+  const PER_PAGE = 25;
+  let allData = [], filteredData = [], currentPage = 1;
+  let sortKey = null, sortDir = 'asc', activeFilter = 'all';
+
+  // ── Fetch ────────────────────────────────────────────────────
+  async function fetchData() {
+    try {
+      const r = await fetchReport('/api/aep_interfaces');
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      allData = await r.json();
+      if (allData.error) throw new Error(allData.error);
+      buildAepSelect();
+      buildSummary();
+      applyFilter();
+    } catch (e) {
+      document.getElementById('tableBody').innerHTML =
+        `<tr><td colspan="6"><div class="empty-state"><div class="icon">⚠</div>Erro: ${e.message}</div></td></tr>`;
+    }
+  }
+
+  // ── AEP select dropdown ──────────────────────────────────────
+  function buildAepSelect() {
+    const aeps = [...new Set(allData.map(r => r.aep))].sort();
+    const sel  = document.getElementById('aepSelect');
+    sel.innerHTML = '<option value="">Todos os AEPs</option>'
+      + aeps.map(a => `<option value="${escHtml(a)}">${escHtml(a)}</option>`).join('');
+  }
+
+  // ── Summary bar ──────────────────────────────────────────────
+  function buildSummary() {
+    const aeps   = new Set(allData.map(r => r.aep)).size;
+    const pgs    = new Set(allData.filter(matchesReportFilters).filter(r => r.policy_group).map(r => r.policy_group)).size;
+    const up     = allData.filter(matchesReportFilters).filter(r => r.status === 'up').length;
+    const down   = allData.filter(matchesReportFilters).filter(r => r.status === 'down').length;
+    const total  = allData.filter(matchesReportFilters).filter(r => r.path).length;
+
+    document.getElementById('summaryBar').innerHTML = `
+      <span class="sum-chip"><b>${aeps}</b> AEPs</span>
+      <span class="sum-chip"><b>${pgs}</b> Policy Groups</span>
+      <span class="sum-chip"><b>${total}</b> interfaces</span>
+      <span class="sum-chip up"><b>${up}</b> UP</span>
+      <span class="sum-chip down"><b>${down}</b> DOWN</span>`;
+  }
+
+  // ── Filter ────────────────────────────────────────────────────
+  function applyFilter() {
+    const q      = document.getElementById('searchInput').value.toLowerCase().trim();
+    const selAep = document.getElementById('aepSelect').value;
+
+    filteredData = allData.filter(matchesReportFilters).filter(r => {
+      if (selAep && r.aep !== selAep) return false;
+      if (activeFilter === 'up'   && r.status !== 'up')   return false;
+      if (activeFilter === 'down' && r.status !== 'down') return false;
+      if (q) return Object.values(r).some(v => v && String(v).toLowerCase().includes(q));
+      return true;
+    });
+
+    if (sortKey) {
+      filteredData.sort((a, b) => {
+        const va = String(a[sortKey] ?? '').toLowerCase();
+        const vb = String(b[sortKey] ?? '').toLowerCase();
+        return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+      });
+    }
+
+    currentPage = 1;
+    render();
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────
+  function escHtml(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+  function hl(t, q) {
+    if (!q || !t) return escHtml(t);
+    const s = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return escHtml(String(t)).replace(new RegExp(s, 'gi'), m => `<mark>${m}</mark>`);
+  }
+  function statusBadge(v) {
+    if (!v) return '<span class="status-badge status-none">—</span>';
+    const cls = v === 'up' ? 'status-up' : v === 'down' ? 'status-down' : 'status-none';
+    return `<span class="status-badge ${cls}">${v.toUpperCase()}</span>`;
+  }
+
+  // ── Render ────────────────────────────────────────────────────
+  function render() {
+    const q      = document.getElementById('searchInput').value.toLowerCase().trim();
+    const total  = filteredData.length;
+    const pages  = Math.max(1, Math.ceil(total / PER_PAGE));
+    currentPage  = Math.min(currentPage, pages);
+    const start  = (currentPage - 1) * PER_PAGE;
+    const slice  = filteredData.slice(start, start + PER_PAGE);
+
+    document.getElementById('resultBadge').innerHTML =
+      `<b>${total}</b> interface${total !== 1 ? 's' : ''}`;
+
+    const tbody = document.getElementById('tableBody');
+
+    if (slice.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="icon">🔍</div>Nenhum resultado encontrado</div></td></tr>`;
+      document.getElementById('pageInfo').textContent = '0 interfaces';
+      renderPagination(pages);
+      return;
+    }
+
+    // Mark first row of each AEP group for visual separator
+    let lastAep = null;
+    tbody.innerHTML = slice.map(r => {
+      const isGroupStart = r.aep !== lastAep;
+      lastAep = r.aep;
+      const rowClass = isGroupStart ? 'group-start' : '';
+
+      // AEP cell: full badge on first row, dim repeat on subsequent
+      const aepCell = isGroupStart
+        ? `<span class="aep-badge">${hl(r.aep, q)}</span>`
+        : `<span class="aep-badge repeat">↳</span>`;
+
+      const pathCell = r.path
+        ? `<span class="path-cell">${hl(r.path, q)}</span>`
+        : `<span class="empty-cell">—</span>`;
+
+      const speedCell = r.speed
+        ? `<span style="font-family:var(--mono);font-size:12px;color:var(--orange)">${escHtml(r.speed)}</span>`
+        : `<span class="empty-cell">—</span>`;
+
+      return `<tr class="${rowClass}">
+        <td class="aep-cell">${aepCell}</td>
+        <td class="pg-cell">${hl(r.policy_group, q) || '<span class="empty-cell">—</span>'}</td>
+        <td class="path-cell">${pathCell}</td>
+        <td>${statusBadge(r.status)}</td>
+        <td>${speedCell}</td>
+        <td class="descr-cell">${hl(r.descr, q) || '<span class="empty-cell">—</span>'}</td>
+      </tr>`;
+    }).join('');
+
+    document.getElementById('pageInfo').textContent =
+      `${start + 1}–${Math.min(start + PER_PAGE, total)} de ${total}`;
+    renderPagination(pages);
+  }
+
+  // ── Pagination ────────────────────────────────────────────────
+  function renderPagination(pages) {
+    const wrap = document.getElementById('pageBtns');
+    if (pages <= 1) { wrap.innerHTML = ''; return; }
+    const range = buildRange(currentPage, pages);
+    wrap.innerHTML = [
+      `<button class="page-btn" id="btnPrev" ${currentPage===1?'disabled':''}>‹</button>`,
+      ...range.map(p => p === '…'
+        ? `<span class="page-btn" style="cursor:default">…</span>`
+        : `<button class="page-btn${p===currentPage?' active':''}" data-p="${p}">${p}</button>`),
+      `<button class="page-btn" id="btnNext" ${currentPage===pages?'disabled':''}>›</button>`,
+    ].join('');
+    wrap.querySelector('#btnPrev').onclick = () => { currentPage--; render(); };
+    wrap.querySelector('#btnNext').onclick = () => { currentPage++; render(); };
+    wrap.querySelectorAll('[data-p]').forEach(b => {
+      b.onclick = () => { currentPage = +b.dataset.p; render(); };
+    });
+  }
+
+  function buildRange(c, t) {
+    if (t <= 7) return Array.from({length: t}, (_, i) => i + 1);
+    if (c <= 4) return [1,2,3,4,5,'…',t];
+    if (c >= t-3) return [1,'…',t-4,t-3,t-2,t-1,t];
+    return [1,'…',c-1,c,c+1,'…',t];
+  }
+
+  // ── Sort ──────────────────────────────────────────────────────
+  document.querySelectorAll('thead th[data-key]').forEach(th => {
+    th.onclick = () => {
+      const key = th.dataset.key;
+      sortDir = sortKey === key && sortDir === 'asc' ? 'desc' : 'asc';
+      sortKey = key;
+      document.querySelectorAll('thead th').forEach(h => h.classList.remove('asc','desc'));
+      th.classList.add(sortDir);
+      applyFilter();
+    };
+  });
+
+  // ── Events ────────────────────────────────────────────────────
+  document.getElementById('searchInput').addEventListener('input', () => applyFilter());
+  document.getElementById('aepSelect').addEventListener('change', () => applyFilter());
+  document.querySelectorAll('.pill').forEach(p => {
+    p.onclick = () => {
+      activeFilter = p.dataset.filter;
+      document.querySelectorAll('.pill').forEach(x => x.className = 'pill');
+      p.classList.add('active-' + activeFilter);
+      applyFilter();
+    };
+  });
+
+  fetchData();
+</script>
+</body>
+</html>

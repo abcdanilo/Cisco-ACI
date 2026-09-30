@@ -1,0 +1,22 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+.venv/
+venv/
+env/
+
+.env
+.env.*
+!.env.example
+
+*.key
+*.pem
+*.crt
+
+*:Zone.Identifier
+
+# Backups e logs locais
+*.zip
+*.log

@@ -1,0 +1,21 @@
+{% extends "diagnostics_base.html" %}
+{% block title %}Leaf Access Port — Detalhes{% endblock %}
+{% block scripts %}<script src="/static/object-faults.js" defer></script><script src="/static/access-group.js" defer></script>{% endblock %}
+{% block content %}
+
+<a href="/acc_ports">← Portas de acesso</a>
+<h1 id="groupName">Leaf Access Port Policy Group</h1>
+<p id="description"></p><p id="groupDn" class="mono muted"></p>
+<div class="result-toolbar"><p id="status" role="status">Carregando…</p><button id="refresh">Atualizar dados</button></div>
+<p id="warning" class="warning" role="alert" hidden></p>
+<h2>Políticas e valores configurados</h2>
+<p class="muted">Valores lidos dos objetos associados. “Padrão” indica uma relação default-target retornada pelo APIC.</p>
+<div id="policies" class="stats-grid"></div>
+<h2>Caminho de utilização</h2>
+<p class="muted">Perfil do switch → perfil de interfaces → seletor → intervalo de portas → este Policy Group.
+Os intervalos representam configuração; não confirmam existência, deployment ou estado operacional das portas.</p>
+<div id="usage"></div>
+<section class="panel" id="objectFaultPanel" hidden><h2>Falhas relacionadas</h2>
+<p class="muted">Objeto e descendentes identificados pelo DN. Inclui registros cleared; não inclui automaticamente falhas de políticas compartilhadas ou de outros objetos.</p>
+<p id="objectFaultStatus" role="status"></p><div id="objectFaultList"></div></section>
+{% endblock %}

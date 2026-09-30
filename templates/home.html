@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <script src="/static/theme.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel de Relatórios ACI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root[data-theme="dark"] {
+      --bg:#0a0e1a; --surface:#111728; --surface-2:#1a2236; --surface-3:#202d45;
+      --border:rgba(255,255,255,0.07); --border-h:rgba(255,255,255,0.15);
+      --text:#e8edf5; --text-muted:#6b7a99; --text-faint:#3d4f6e;
+      --shadow:rgba(0,0,0,0.5); --grid:rgba(61,139,255,0.03);
+    }
+    :root[data-theme="light"] {
+      --bg:#f0f4fb; --surface:#ffffff; --surface-2:#f4f7fd; --surface-3:#e4ecf8;
+      --border:rgba(0,0,0,0.08); --border-h:rgba(0,0,0,0.2);
+      --text:#0d1526; --text-muted:#5a6a8a; --text-faint:#b0bdd4;
+      --shadow:rgba(0,0,0,0.1); --grid:rgba(61,139,255,0.04);
+    }
+    :root {
+      --blue:#3d8bff; --cyan:#00d4ff; --purple:#a78bfa;
+      --orange:#fb923c; --green:#34d399;
+      --mono:'Space Mono',monospace; --sans:'DM Sans',sans-serif;
+    }
+
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden;transition:background .25s,color .25s;}
+    body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0;}
+    .page-wrapper{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:40px 24px 80px;}
+
+    /* ─── TOPBAR ─── */
+    .topbar{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:52px;animation:fadeDown .5s ease both;gap:16px;flex-wrap:wrap;}
+    .header-tag{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--cyan);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+    .header-tag::before{content:'';display:inline-block;width:20px;height:1px;background:var(--cyan);}
+    h1{font-family:var(--mono);font-size:clamp(26px,4vw,44px);font-weight:700;letter-spacing:-.02em;line-height:1.1;color:var(--text);}
+    h1 span{color:var(--blue);}
+    .header-subtitle{margin-top:10px;font-size:14px;font-weight:300;color:var(--text-muted);max-width:420px;}
+    .header-meta{margin-top:20px;display:flex;gap:10px;flex-wrap:wrap;}
+    .meta-pill{font-family:var(--mono);font-size:11px;padding:4px 11px;border-radius:100px;background:var(--surface);border:1px solid var(--border);color:var(--text-muted);letter-spacing:.04em;}
+    .meta-pill.online{color:var(--green);border-color:rgba(52,211,153,.3);background:rgba(52,211,153,.07);}
+    .meta-pill.online::before{content:'● ';font-size:8px;}
+
+    /* ─── THEME TOGGLE ─── */
+    .theme-toggle{flex-shrink:0;display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:100px;padding:7px 16px 7px 12px;cursor:pointer;font-family:var(--mono);font-size:11px;color:var(--text-muted);transition:all .2s;user-select:none;letter-spacing:.04em;}
+    .theme-toggle:hover{border-color:var(--border-h);color:var(--text);}
+    .theme-toggle .ti{font-size:14px;}
+
+    /* ─── GRID: 5 cols on wide, adaptive below ─── */
+    .cards-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;align-items:start;}
+    @media(max-width:1300px){.cards-grid{grid-template-columns:repeat(3,1fr);}}
+    @media(max-width:900px) {.cards-grid{grid-template-columns:repeat(2,1fr);}}
+    @media(max-width:600px) {.cards-grid{grid-template-columns:1fr;}}
+
+    /* ─── CARD ─── */
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:transform .2s,box-shadow .2s,border-color .2s;animation:fadeUp .45s ease both;}
+    .card:nth-child(1){animation-delay:.05s;} .card:nth-child(2){animation-delay:.10s;}
+    .card:nth-child(3){animation-delay:.15s;} .card:nth-child(4){animation-delay:.20s;}
+    .card:hover{transform:translateY(-3px);box-shadow:0 16px 48px var(--shadow);}
+    .card[data-cat="interfaces"]:hover{border-color:rgba(61,139,255,.35);}
+    .card[data-cat="endpoints"]:hover {border-color:rgba(167,139,250,.35);}
+    .card[data-cat="l3out"]:hover     {border-color:rgba(251,146,60,.35);}
+    .card[data-cat="fabric"]:hover    {border-color:rgba(52,211,153,.35);}
+    .card[data-cat="operacional"]:hover{border-color:rgba(248,113,113,.35);}
+
+    /* Card header */
+    .card-head{padding:14px 16px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+    .card-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+    .card[data-cat="interfaces"] .card-icon{background:rgba(61,139,255,.12);}
+    .card[data-cat="endpoints"]  .card-icon{background:rgba(167,139,250,.12);}
+    .card[data-cat="l3out"]      .card-icon{background:rgba(251,146,60,.12);}
+    .card[data-cat="fabric"]     .card-icon{background:rgba(52,211,153,.12);}
+    .card[data-cat="operacional"].card-icon, .card[data-cat="operacional"] .card-icon{background:rgba(248,113,113,.12);}
+    .card-title{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.07em;}
+    .card[data-cat="interfaces"] .card-title{color:var(--blue);}
+    .card[data-cat="endpoints"]  .card-title{color:var(--purple);}
+    .card[data-cat="l3out"]      .card-title{color:var(--orange);}
+    .card[data-cat="fabric"]     .card-title{color:var(--green);}
+    .card[data-cat="operacional"] .card-title{color:var(--red);}
+    .card-count{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--text-muted);background:var(--surface-2);border:1px solid var(--border);padding:2px 7px;border-radius:100px;white-space:nowrap;}
+
+    /* Scrollable body */
+    .card-body{max-height:420px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--surface-3) transparent;}
+    .card-body::-webkit-scrollbar{width:3px;}
+    .card-body::-webkit-scrollbar-thumb{background:var(--surface-3);border-radius:4px;}
+
+    /* ─── LINKS ─── */
+    .link-list{list-style:none;}
+    .link-item a{display:flex;align-items:center;padding:9px 16px;font-size:13px;font-weight:400;color:var(--text-muted);text-decoration:none;border-bottom:1px solid var(--border);transition:all .15s;gap:6px;}
+    .link-item:last-child a{border-bottom:none;}
+    .link-item a .label{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .link-item a:hover{color:var(--text);background:var(--surface-2);padding-left:20px;}
+    .link-item a .arrow{opacity:0;transform:translateX(-3px);transition:all .15s;font-size:10px;flex-shrink:0;}
+    .link-item a:hover .arrow{opacity:1;transform:translateX(0);}
+    .link-item.hidden{display:none;}
+
+    /* ─── L3OUT GROUPS ─── */
+    .link-group-header{display:flex;align-items:center;gap:6px;padding:6px 16px 5px;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-faint);background:var(--surface-2);border-bottom:1px solid var(--border);cursor:pointer;user-select:none;transition:color .15s,background .15s;}
+    .link-group-header:hover{color:var(--text-muted);background:var(--surface-3);}
+    .link-group-header .chv{margin-left:auto;font-size:9px;transition:transform .2s;color:var(--text-faint);}
+    .link-group.collapsed .chv{transform:rotate(-90deg);}
+    .link-group.collapsed .link-list{display:none;}
+
+    /* ─── SEARCH inside L3Out ─── */
+    .card-search{padding:8px 12px;border-bottom:1px solid var(--border);position:relative;}
+    .card-search svg{position:absolute;left:21px;top:50%;transform:translateY(-50%);color:var(--text-faint);pointer-events:none;}
+    .card-search input{width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--sans);font-size:12px;padding:5px 8px 5px 26px;outline:none;transition:border-color .2s;}
+    .card-search input::placeholder{color:var(--text-faint);}
+    .card-search input:focus{border-color:var(--orange);}
+
+    /* ─── FOOTER ─── */
+    footer{margin-top:48px;padding-top:18px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+    .footer-brand{font-family:var(--mono);font-size:12px;color:var(--text-muted);}
+    .footer-brand strong{color:var(--blue);}
+    .footer-note{font-size:12px;color:var(--text-muted);}
+
+    @keyframes fadeDown{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes fadeUp  {from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)}}
+  </style>
+  <link rel="stylesheet" href="/static/theme.css">
+<link rel="stylesheet" href="/static/dashboard.css"><script src="/static/dashboard.js" defer></script>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <div class="topbar">
+    <header>
+      <div class="header-tag">Infraestrutura de Rede</div>
+      <h1>Relatórios <span>ACI</span></h1>
+      <p class="header-subtitle">Monitoramento e gestão centralizada de infraestrutura Cisco ACI.</p>
+      <div class="header-meta">
+        <span class="meta-pill">Painel operacional</span>
+        
+        
+      </div>
+    </header>
+
+    <button class="theme-toggle" id="themeToggle">
+      <span class="ti" id="themeIcon">☀️</span>
+      <span id="themeLabel">Claro</span>
+    </button>
+  </div>
+
+  <section class="operational" aria-label="Resumo operacional">
+    <div class="operational-head"><h2>Visão geral do fabric</h2><button id="dashboardRefresh">Atualizar indicadores</button></div>
+    <p>Clique em um indicador para abrir o relatório. Contagens por coleta; não representam uma fotografia simultânea. Interfaces incluem todos os estados administrativos.</p>
+    <div id="operationalCards" class="operational-grid" aria-live="polite"></div>
+  </section>
+  <div class="cards-grid">
+
+    <!-- Interfaces -->
+    <div class="card" data-cat="interfaces">
+      <div class="card-head">
+        <div class="card-icon">🔌</div>
+        <span class="card-title">INTERFACES</span>
+        <span class="card-count">5</span>
+      </div>
+      <div class="card-body">
+        <ul class="link-list">
+          <li class="link-item"><a href="/interfaces/up_full"><span class="label">Todas as Interfaces</span><span class="arrow">→</span></a></li>
+          <li class="link-item"><a href="/interface_details"><span class="label">Detalhamento e Tráfego</span><span class="arrow">→</span></a></li>
+          <li class="link-item"><a href="/portchannels"><span class="label">VPC Ports</span><span class="arrow">→</span></a></li>
+          <li class="link-item"><a href="/acc_ports"><span class="label">ACC Ports</span><span class="arrow">→</span></a></li>
+          <li class="link-item"><a href="/aep_interfaces"><span class="label">AEP — Interfaces Físicas</span><span class="arrow">→</span></a></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Endpoints -->
+    <div class="card" data-cat="endpoints">
+      <div class="card-head">
+        <div class="card-icon">🖥️</div>
+        <span class="card-title">ENDPOINTS</span>
+        <span class="card-count">4</span>
+      </div>
+      <div class="card-body">
+        <ul class="link-list">
+          <li class="link-item"><a href="/endpoint_lookup"><span class="label">Localizar servidor</span><span class="arrow">→</span></a></li>
+          <li class="link-item"><a href="/endpoints"><span class="label">Inventário de Endpoints</span><span class="arrow">→</span></a></li>
+          <li class="link-item"><a href="/vmware"><span class="label">Endpoints VMware</span><span class="arrow">→</span></a></li>
+          <li class="link-item"><a href="/ip_endpoints"><span class="label">Endpoints por IP</span><span class="arrow">→</span></a></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- L3Out -->
+    <div class="card" data-cat="l3out">
+      <div class="card-head"><div class="card-icon">🌐</div><span class="card-title">CONECTIVIDADE L3OUT</span><span class="card-count">1</span></div>
+      <div class="card-body"><ul class="link-list">
+        <li class="link-item"><a href="/l3out_explorer"><span class="label">Consultar L3Out</span><span class="arrow">→</span></a></li>
+      </ul></div>
+    </div>
+
+    <!-- Políticas & Fabric -->
+    <div class="card" data-cat="fabric">
+      <div class="card-head">
+        <div class="card-icon">⚙️</div>
+        <span class="card-title">POLÍTICAS & FABRIC</span>
+        <span class="card-count">4</span>
+      </div>
+      <div class="card-body">
+        <ul class="link-list">
+          <li class="link-item"><a href="/vrfs"><span class="label">Relatório de VRFs</span><span class="arrow">→</span></a></li>
+          <li class="link-item"><a href="/contracts"><span class="label">Relatório de Contratos</span><span class="arrow">→</span></a></li>
+          <li class="link-item"><a href="/epgs"><span class="label">Relatório de EPGs</span><span class="arrow">→</span></a></li>
+          <li class="link-item"><a href="/bds"><span class="label">Bridge Domains</span><span class="arrow">→</span></a></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Operacional -->
+    <div class="card" data-cat="operacional">
+      <div class="card-head">
+        <div class="card-icon">🚨</div>
+        <span class="card-title">OPERACIONAL</span>
+        <span class="card-count">3</span>
+      </div>
+      <div class="card-body">
+        <ul class="link-list">
+          <li class="link-item"><a href="/faults"><span class="label">Faults Ativos</span><span class="arrow">→</span></a></li>
+          <li class="link-item"><a href="/fabric_nodes"><span class="label">Fabric Nodes (Leafs & Spines)</span><span class="arrow">→</span></a></li>
+          <li class="link-item"><a href="/history"><span class="label">Histórico de eventos</span><span class="arrow">→</span></a></li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>
+    <span class="footer-brand">Painel <strong>ACI</strong> — Infraestrutura de Rede</span>
+    <span class="footer-note">Consultas de infraestrutura</span>
+  </footer>
+
+</div>
+
+</body>
+</html>

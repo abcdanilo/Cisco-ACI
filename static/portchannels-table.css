@@ -1,0 +1,20 @@
+body[data-page="portchannels"] main{max-width:1700px}
+.compact-scroll{overflow:auto;max-height:68vh;border:1px solid var(--border);border-radius:12px;background:var(--surface)}
+.compact-pc{width:100%;border-collapse:collapse;font-size:13px;text-align:left}
+.compact-pc th{position:sticky;top:0;z-index:1;background:var(--surface2);color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.07em;padding:14px;white-space:nowrap}
+.compact-pc td{padding:13px 14px;border-bottom:1px solid var(--border);vertical-align:top}
+.compact-pc tr.group-start td{border-top:2px solid var(--border)}
+.compact-pc tbody tr:hover{background:var(--surface2)}
+.compact-pc .group-name{min-width:200px;max-width:280px;overflow-wrap:anywhere}
+.compact-pc .group-name small{display:block;margin-top:6px;font-size:11px}
+.compact-members{min-width:130px}.compact-members a{display:block;font-family:ui-monospace,monospace;padding:3px 0}
+.compact-pc summary{cursor:pointer;white-space:nowrap;color:var(--blue)}
+.compact-pc details[open]{min-width:320px;max-width:600px}
+.compact-pc details p{overflow-wrap:anywhere}
+.peer-line{margin:5px 0 10px;white-space:nowrap}
+.compact-members .peer-line{white-space:normal}
+.compact-members a.member-chip{padding:4px 8px;margin:4px 0;background:var(--surface2);border:1px solid var(--border);border-radius:6px;font-size:11px;white-space:nowrap;text-decoration:none}
+.compact-members a.member-chip:hover{text-decoration:underline}
+.compact-pagination{display:flex;align-items:center;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin:0;padding:14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);font-size:12px}
+.compact-pagination span{margin-right:auto;color:var(--muted)}
+.compact-pagination button{padding:7px 13px;font-size:12px}
