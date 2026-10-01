@@ -20,3 +20,9 @@ env/
 # Backups e logs locais
 *.zip
 *.log
+
+# Ferramentas locais e template sem rota ativa
+/AGENTS.md
+/tests/
+/run_sandbox.py
+/templates/report_portchannels.html

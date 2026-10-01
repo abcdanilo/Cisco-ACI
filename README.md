@@ -109,18 +109,6 @@ Abra [http://127.0.0.1:8000](http://127.0.0.1:8000). Mantenha o terminal aberto;
 
 Esses comandos fixam a porta em 8000. A execução direta de `app.py` usa `PORT` e escuta em `0.0.0.0`, aceitando conexões pelas interfaces de rede do servidor.
 
-### Laboratório Cisco Sandbox
-
-```powershell
-.\.venv\Scripts\python.exe -B run_sandbox.py
-```
-
-No Linux, use `.venv/bin/python -B run_sandbox.py`.
-
-O launcher aponta para `https://sandboxapicdc.cisco.com`, usa o usuário `admin` e solicita a senha no terminal. Não há senha cadastrada no código. Se `APIC_PASS` já estiver no ambiente do processo, ela será usada sem nova solicitação; use um terminal sem credenciais de produção.
-
-O laboratório escuta em `127.0.0.1:8000`, desativa a leitura do `.env` e a validação TLS e identifica as páginas com um banner. Sua disponibilidade e seus dados dependem do sandbox compartilhado. Não use esse launcher para conectar à APIC de produção.
-
 ### Produção
 
 O objeto WSGI é `app:app`. Utilize o serviço WSGI e o proxy configurados no servidor. O servidor embutido do Flask (`python app.py` ou `flask run`) é destinado ao desenvolvimento.
@@ -162,6 +150,12 @@ Em **Bridge Domains**, a coluna **Subnets (IP/prefixo)** mostra os endereços IP
 
 ### Faults e histórico
 
+A tela **Recursos da APIC** também mostra saúde, estados administrativo/operacional, modo APIC e failover de `infraWiNode`. Para cada controlador, consulta `/api/node/mo/<DN-do-controlador>/av.json?query-target=children&target-subtree-class=infraWiNode` e seleciona o filho correspondente ao próprio node/pod. Os estados são apresentados como retornados pelo APIC; não são convertidos em percentuais de saúde. Falhas nessa consulta não impedem a exibição de CPU, memória ou armazenamento.
+
+Em **Operacional → Recursos da APIC**, consulte CPU, memória e utilização de discos/sistemas de arquivos por controlador. A consulta usa `fabricNode` (somente controllers), `procEntity` e `eqptStorage`, com atualização manual e cache compartilhado. A memória é calculada como `(maxMemAlloc - memFree) / maxMemAlloc`; não desconta cache nem equivale à memória disponível do sistema operacional. O armazenamento usa `capUtilized` por montagem, incluindo `tmpfs`, sem somar percentuais. Valores ausentes ou inválidos aparecem como indisponíveis. `modTs` indica alteração do objeto, não o horário de uma amostra. Não há histórico de recursos nem atualização automática.
+
+Referência: [Monitoramento APIC pela REST API — Cisco](https://www.cisco.com/c/en/us/td/docs/switches/datacenter/aci/apic/sw/4-x/rest-api-config/Cisco-APIC-REST-API-Configuration-Guide-411/Cisco-APIC-REST-API-Configuration-Guide-411_chapter_0110.html).
+
 Em **Operacional**, abra **Faults Ativos** para consultar falhas e filtrar por severidade e contexto. O relatório pode incluir severidade `cleared`; o indicador total informa essa inclusão.
 
 **Histórico de eventos** permite selecionar eventos ou alterações de configuração, período e texto. O período inicial é de 24 horas, com limite de 31 dias por consulta e 50 registros por página. O filtro opcional de DN corresponde ao objeto afetado exato.
@@ -191,13 +185,11 @@ Os CSVs têm proteção contra interpretação de células como fórmulas. Se o 
 | `aci_access.py` | Políticas, relações e seletores de grupos de acesso |
 | `aci_l3out.py` | Inventário dinâmico de tenants/L3Outs e seleção de prefixos |
 | `aci_history.py` | Consultas paginadas de eventos e auditoria |
-| `run_sandbox.py` | Inicialização exclusiva do laboratório Cisco |
+| `aci_resources.py` | CPU, memória e armazenamento dos controladores APIC |
 | `templates/` | Páginas HTML e templates Jinja |
 | `static/` | CSS e JavaScript das telas, filtros, indicadores e temas |
-| `tests/` | Testes com respostas simuladas, sem APIC real |
 | `.env.example` | Modelo de configuração sem credenciais |
 | `requirements.txt` | Dependências Python |
-| `AGENTS.md` | Instruções locais de manutenção assistida; não configura a execução |
 
 `static/theme.js` e `static/theme.css` controlam os temas. `static/report-tools.js` reúne ferramentas comuns dos relatórios. Os demais scripts acompanham funcionalidades como histórico, diagnósticos, L3Out e port-channels.
 
@@ -224,10 +216,10 @@ Os CSVs têm proteção contra interpretação de células como fórmulas. Se o 
 | `report_faults.html` | `/faults` | Faults, severidade e contexto |
 | `report_fabric_nodes.html` | `/fabric_nodes` | Inventário de nodes do fabric |
 | `history.html` | `/history` | Eventos e auditoria de alterações |
+| `apic_resources.html` | `/apic_resources` | Recursos de cada APIC; API em `/api/apic_resources` |
 | `diagnostics_base.html` | Sem rota própria | Estrutura compartilhada das telas de diagnóstico |
 | `report_up.html` | `/up`, fora do menu principal | Relatório de interfaces ativas mantido por compatibilidade |
 | `report_down.html` | `/down`, fora do menu principal | Relatório de interfaces inativas mantido por compatibilidade |
-| `report_portchannels.html` | Sem rota HTML ativa | Template antigo por switch; `/portchannels` usa a visão consolidada |
 
 As páginas antigas de L3Out e `/l3out` redirecionam ao explorador dinâmico. Não é necessário criar rotas fixas para novos tenants.
 
@@ -258,9 +250,9 @@ git pull --ff-only
 
 Atualize as dependências com o Python da `.venv` e `-m pip install -r requirements.txt`. Se a atualização for por cópia, leve `app.py`, todos os módulos `aci_*.py`, `templates/`, `static/` e `requirements.txt` juntos. Não copie a `.venv` de outra máquina.
 
-No laboratório, pressione **Ctrl+C** e execute novamente o launcher. Em produção, reinicie o serviço que hospeda `app:app`. Depois atualize o navegador com **Ctrl+F5**.
+Na execução manual, pressione **Ctrl+C** e repita o comando de inicialização da seção Execução. Em produção, reinicie o serviço que hospeda `app:app`. Depois atualize o navegador com **Ctrl+F5**.
 
-O laboratório não usa recarga automática. **Ctrl+F5 sozinho não reinicia o Python nem limpa os templates em memória no servidor.**
+A execução manual documentada não usa recarga automática. **Ctrl+F5 sozinho não reinicia o Python nem limpa os templates em memória no servidor.**
 
 ## Solução de problemas
 
@@ -278,20 +270,10 @@ O laboratório não usa recarga automática. **Ctrl+F5 sozinho não reinicia o P
 
 Ao relatar problemas, inclua tela, horário, mensagem de erro e contexto necessário, omitindo senhas, tokens e informações sensíveis.
 
-## Testes
+## Escopo da publicação e validação
 
-Windows:
+O repositório publica o código da aplicação, módulos de consulta, templates ativos, arquivos estáticos, dependências e documentação de instalação. O README, `.env.example` e `.gitignore` são mantidos para facilitar a configuração e evitar a publicação de arquivos locais.
 
-```powershell
-.\.venv\Scripts\python.exe -B -m unittest discover -s tests -q
-```
+O launcher de sandbox, instruções locais de manutenção (`AGENTS.md`), a suíte `tests/` e o template antigo `report_portchannels.html` permanecem apenas no ambiente de desenvolvimento. Eles não são necessários para executar o painel e não acompanham uma nova clonagem. Os templates UP e DOWN continuam publicados porque suas rotas de compatibilidade ainda estão ativas.
 
-Linux:
-
-```bash
-.venv/bin/python -B -m unittest discover -s tests -q
-```
-
-Os testes usam credenciais fictícias, desativam o `.env` e bloqueiam a sessão HTTP real. Cobrem consultas, associações, cache, erros, filtros, CSV e páginas. Erros simulados podem aparecer no log; confira o resultado final da suíte.
-
-Testes offline não substituem a validação com a versão e as permissões do APIC de destino. Antes de atualizar uma instalação, confira interfaces conhecidas, um vPC, um BD com subnet e um L3Out do ambiente.
+A suíte local foi executada antes desta publicação. Para validar uma instalação, confira o carregamento das páginas, interfaces conhecidas, um vPC, um BD com subnet, um L3Out e os recursos APIC disponíveis. A disponibilidade das métricas depende da versão e das permissões do controlador.

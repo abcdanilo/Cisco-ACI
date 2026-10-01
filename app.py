@@ -23,6 +23,7 @@ from aci_diagnostics import register_diagnostics, csv_cell
 from aci_portchannels import register_portchannels
 from aci_access import register_access
 from aci_history import register_history
+from aci_resources import register_resources
 from aci_l3out import register_l3out
 
 load_dotenv()
@@ -1150,6 +1151,7 @@ register_portchannels(app, lambda *args, **kwargs: apic_get(*args, **kwargs),
 register_access(app, lambda *args, **kwargs: apic_get(*args, **kwargs), cached, _json_route, collection_warning)
 
 register_history(app, lambda *args, **kwargs: _apic_get_page(*args, **kwargs), _json_route)
+register_resources(app, lambda *args, **kwargs: apic_get(*args, **kwargs), cached, _json_route, collection_warning)
 
 register_l3out(app, lambda *args, **kwargs: apic_get(*args, **kwargs), get_l3out_subnets, cached, _json_route)
 

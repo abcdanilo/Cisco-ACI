@@ -1,0 +1,11 @@
+{% extends "diagnostics_base.html" %}
+{% block title %}Recursos da APIC — ACI{% endblock %}
+{% block page %}apic-resources{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='apic-resources.js') }}" defer></script>{% endblock %}
+{% block content %}
+<header><p class="eyebrow">OPERACIONAL / CONTROLADORES</p><h1>Recursos da APIC</h1><p>Saúde, CPU, memória e utilização dos discos e sistemas de arquivos de cada controlador.</p></header>
+<div class="result-toolbar"><p id="status" role="status">Consultando controladores…</p><button id="refresh" type="button">Atualizar dados</button></div>
+<p id="warning" class="warning" role="alert" hidden></p>
+<p class="hint">Valores retornados pelo APIC na consulta, sem histórico local nem atualização automática. O horário de coleta não garante a idade da medição. “Última alteração” é o modTs do objeto, não o instante de uma amostra.</p>
+<section id="controllers" aria-label="Recursos por controlador"></section>
+{% endblock %}
