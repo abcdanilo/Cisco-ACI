@@ -162,7 +162,7 @@
       <span>Portas de Acesso</span>
     </div>
     <h1>Interfaces — <span>Portas ACC</span></h1>
-    <p class="header-sub">Access Policies › Interfaces › Leaf Interfaces › Policy Groups › Leaf Access Port. Grupos sem portas resolvidas também são exibidos.</p>
+    <p class="header-sub">Access Policies › Interfaces › Leaf Interfaces › Policy Groups › Leaf Access Port. Portas resolvidas pelo deployment ou pelos seletores de acesso e inventário físico. Grupos sem portas resolvidas também são exibidos.</p>
   </div>
 
   <div class="toolbar">
@@ -279,6 +279,13 @@
     return `<span class="status-badge ${cls}">${escHtml(status.toUpperCase())}</span>`;
   }
 
+  function bindingLink(path) {
+    const match = String(path || '').match(/^pod-(\d+) \/ node-(\d+) \/ (eth\d+\/\d+(?:\/\d+)?)$/);
+    if (!match) return '';
+    const target = `topology/pod-${match[1]}/paths-${match[2]}/pathep-[${match[3]}]`;
+    return `<br><a href="/epg_bindings?path=${encodeURIComponent(target)}">VLANs / EPGs diretos</a>`;
+  }
+
   function render() {
     const q     = document.getElementById('searchInput').value.toLowerCase().trim();
     const total = filteredData.length;
@@ -296,7 +303,7 @@
           <tr>
             <td>${statusBadge(r.status)}</td>
             <td class="mono"><a href="/access_group?dn=${encodeURIComponent(r.policy_group_dn)}" style="color:var(--accent)">${hl(r.acc, q)}</a></td>
-            <td class="mono">${hl(r.path, q)}</td>
+            <td class="mono">${hl(r.path, q)}<br><small>${escHtml(r.association_source || '')}</small>${bindingLink(r.path)}</td>
             <td class="speed-cell">${escHtml(r.speed ?? '-')}</td>
             <td style="min-width:280px;max-width:480px;white-space:normal;overflow-wrap:anywhere"><details><summary>Ver AEP, políticas e seletores</summary>
             <p><b>AEP:</b> ${escHtml(r.aep || 'Não informado')}</p>

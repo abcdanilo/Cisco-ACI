@@ -159,6 +159,8 @@
     byId('status').textContent = 'Consultando interface e estatísticas…';
     byId('details').hidden = true;
     window.dispatchEvent(new CustomEvent('object-selected',{detail:{dn,force}}));
+    const bindingLink=document.getElementById('bindingLink'),physical=dn.match(/^topology\/pod-(\d+)\/node-(\d+)\/sys\/phys-\[(eth\d+\/\d+(?:\/\d+)?)\]$/);
+    if(bindingLink){bindingLink.hidden=!physical;if(physical)bindingLink.href='/epg_bindings?'+new URLSearchParams({path:`topology/pod-${physical[1]}/paths-${physical[2]}/pathep-[${physical[3]}]`});}
     try {
       const {body:row, metadata} = await load('/api/interface_details', {dn}, force);
       lastDn = dn;

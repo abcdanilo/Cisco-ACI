@@ -1,0 +1,15 @@
+{% extends "diagnostics_base.html" %}
+{% block title %}{{ 'Saúde por tenant' if kind == 'tenant' else 'CPU de Leafs e Spines' }} — ACI{% endblock %}
+{% block scripts %}<script src="/static/operational-health.js" defer></script>{% endblock %}
+{% block content %}
+<section id="healthPage" data-kind="{{ kind }}">
+<header><p class="eyebrow">OPERACIONAL</p><h1>{{ 'Saúde por tenant' if kind == 'tenant' else 'CPU de Leafs e Spines' }}</h1></header>
+<section class="panel"><form id="filters"><label>Pesquisar<input id="query" type="search" placeholder="{{ 'Nome do tenant' if kind == 'tenant' else 'Nome, pod ou node' }}"></label>
+{% if kind == 'cpu' %}<label>Tipo<select id="role"><option value="">Todos</option><option value="leaf">Leaf</option><option value="spine">Spine</option></select></label>{% endif %}
+<button type="button" id="reload">Atualizar dados</button></form></section>
+<p id="status" role="status"></p><p id="warning" class="warning" hidden></p>
+<p class="hint">{% if kind == 'tenant' %}Índice de saúde fornecido pelo APIC (0–100), não percentual de disponibilidade. Contagens de faults vêm do resumo do tenant; não somamos as subdivisões por tipo/domínio. Os detalhes podem refletir outro instante de coleta.{% else %}Média da janela de cinco minutos: utilização = 100 − idleAvg. Usuário e kernel são componentes informados separadamente. Amostras com mais de 15 minutos são sinalizadas; não é medição em tempo real.{% endif %}</p>
+<p id="count"></p><div class="pc-table-scroll"><table class="pc-table"><thead id="head"></thead><tbody id="rows"></tbody></table></div>
+<div class="result-toolbar"><button id="prev" class="secondary">Anterior</button><span id="page"></span><button id="next" class="secondary">Próxima</button></div>
+</section>
+{% endblock %}

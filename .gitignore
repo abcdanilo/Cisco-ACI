@@ -26,3 +26,4 @@ env/
 /tests/
 /run_sandbox.py
 /templates/report_portchannels.html
+*.7z

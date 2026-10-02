@@ -135,7 +135,7 @@ A busca por nome é parcial e ignora maiúsculas, usando os campos disponíveis 
 - **Todas as Interfaces:** inclui interfaces administrativamente habilitadas e desabilitadas, separando estado administrativo de operacional.
 - **Detalhamento e Tráfego:** recebe pod, node e interface ou o DN de uma porta. Mostra as últimas estatísticas disponíveis de cinco minutos, não tráfego em tempo real. Ausência de amostra não significa tráfego zero.
 - **VPC Ports:** reúne os lados de um grupo lógico, mantendo port-channel, estado e membros por node. Os números de port-channel podem ser diferentes entre os peers.
-- **ACC Ports:** mostra status, Policy Group, caminho físico, velocidade e configuração. Clique no grupo para consultar políticas e seletores.
+- **ACC Ports:** mostra status, Policy Group, pod, node, interface, velocidade e configuração. Quando o deployment não informa portas, cruza as relações formadas dos seletores de acesso e perfis de switches com interfaces existentes no inventário físico. A origem da associação aparece na tabela; o estado operacional continua vindo da interface. Grupos sem correspondência permanecem visíveis. Essa alternativa cobre blocos de portas Ethernet convencionais; não presume interfaces FEX/breakout nem pod quando a associação é ambígua. Clique no grupo para consultar políticas e seletores.
 - **AEP — Interfaces Físicas:** relaciona AEPs, grupos de políticas e portas identificadas.
 
 A visão vPC distingue associação confirmada por membros físicos de correlação por nome exato + pod/node do caminho lógico. Correlações ficam sinalizadas e ambiguidades não são forçadas. “Parcial” descreve o mapeamento, não a saúde do protocolo vPC. O localizador de servidores usa somente associações físicas confirmadas para apresentar membros de bundles.
@@ -144,11 +144,19 @@ A visão vPC distingue associação confirmada por membros físicos de correlaç
 
 Em **Consultar L3Out**, selecione tenant e L3Out e refine a busca. As opções vêm do APIC e podem incluir grupos sem prefixos.
 
-A tela apresenta **prefixos de External EPG (`l3extSubnet`)**. Não representa uma tabela de rotas estáticas ou aprendidas por protocolos de roteamento.
+A tela permite alternar entre **prefixos de External EPG (`l3extSubnet`)** e **rotas estáticas configuradas (`ipRouteP` / `ipNexthopP`)**. Rotas estáticas mostram tenant, L3Out, node profile, pod, node, prefixo, próximos saltos e preferência. Cada rota por node conta uma vez, mesmo com vários next hops. Não são consultadas rotas aprendidas nem comprovada a instalação na tabela de encaminhamento. API: `/api/l3out_static_routes`; CSV filtrado: `/export_csv/l3out_static_routes`.
+
+Em **Endpoints → VLANs / EPGs por porta**, consulte vínculos estáticos `fvRsPathAtt`, com tenant, Application Profile, EPG, VLAN, modo, deployment e caminho. Filtre por tenant, node, texto ou caminho exato e exporte toda a seleção. Atalhos em ACC Ports, detalhes de interface e VPC Ports abrem os vínculos correspondentes. Uma porta física mostra vínculos diretos; consulte o grupo lógico para vínculos PC/vPC. Não inclui associações via AEP, vínculos dinâmicos de VMM ou interfaces L3Out, nem comprova tráfego. API: `/api/epg_bindings`; CSV: `/export_csv/epg_bindings`.
+
+O filtro Tenant consulta o inventário `fvTenant` pela API `/api/epg_binding_tenants`, incluindo tenants sem vínculos estáticos retornados. A tela informa a quantidade de tenants com vínculos e exibe uma explicação quando a seleção está vazia. Se o inventário falhar, os vínculos continuam disponíveis e um aviso informa que a lista de tenants está limitada à coleta de vínculos. As páginas exibem até 50 linhas; um resultado vazio não comprova ausência de VLANs no tenant.
 
 Em **Bridge Domains**, a coluna **Subnets (IP/prefixo)** mostra os endereços IPv4/IPv6 cadastrados diretamente no BD, preservando o endereço e o prefixo configurados. É possível pesquisar por subnet. BDs sem esses objetos são identificados; subnets de EPGs não são apresentadas como subnets do BD.
 
 ### Faults e histórico
+
+Em **Operacional → Saúde por tenant**, veja o índice `healthInst.cur` (0–100) e os contadores critical, major, minor e warning de `fltCnts`. As subdivisões por tipo/domínio não são somadas novamente. Os links abrem o relatório de faults filtrado por tenant/severidade; os dois relatórios podem ter horários de coleta distintos. Consultas ausentes ou incompletas não são convertidas em zero. API: `/api/tenant_health`.
+
+Em **Operacional → CPU de Leafs e Spines**, consulte a amostra mais recente disponível de `procSysCPU5min`, vinculada ao DN completo do switch. A utilização média é calculada como `100 - idleAvg`, com `userAvg` e `kernelAvg` separados. A tela mostra início/fim da janela, sinaliza amostras com mais de 15 minutos e preserva switches sem métricas. Amostras suspeitas são indicadas sem percentual de utilização. Não há histórico local nem monitoramento em tempo real. API: `/api/switch_cpu`.
 
 A tela **Recursos da APIC** também mostra saúde, estados administrativo/operacional, modo APIC e failover de `infraWiNode`. Para cada controlador, consulta `/api/node/mo/<DN-do-controlador>/av.json?query-target=children&target-subtree-class=infraWiNode` e seleciona o filho correspondente ao próprio node/pod. Os estados são apresentados como retornados pelo APIC; não são convertidos em percentuais de saúde. Falhas nessa consulta não impedem a exibição de CPU, memória ou armazenamento.
 
@@ -184,8 +192,10 @@ Os CSVs têm proteção contra interpretação de células como fórmulas. Se o 
 | `aci_portchannels.py` | Consolidação PC/vPC, evidências, filtros e CSV |
 | `aci_access.py` | Políticas, relações e seletores de grupos de acesso |
 | `aci_l3out.py` | Inventário dinâmico de tenants/L3Outs e seleção de prefixos |
+| `aci_bindings.py` | Vínculos estáticos de EPG/VLAN por caminho, filtros e CSV |
 | `aci_history.py` | Consultas paginadas de eventos e auditoria |
 | `aci_resources.py` | CPU, memória e armazenamento dos controladores APIC |
+| `aci_health.py` | Saúde e contagem de faults por tenant; CPU de Leafs/Spines |
 | `templates/` | Páginas HTML e templates Jinja |
 | `static/` | CSS e JavaScript das telas, filtros, indicadores e temas |
 | `.env.example` | Modelo de configuração sem credenciais |
@@ -209,6 +219,7 @@ Os CSVs têm proteção contra interpretação de células como fórmulas. Se o 
 | `report_vmware.html` | `/vmware` | Inventário VMware disponível no APIC |
 | `report_ip_endpoints.html` | `/ip_endpoints` | Endpoints por IP e contexto |
 | `l3out_explorer.html` | `/l3out_explorer` | Tenant/L3Out e prefixos de External EPG |
+| `epg_bindings.html` | `/epg_bindings` | VLANs e EPGs configurados em portas e PC/vPC |
 | `report_vrfs.html` | `/vrfs` | VRFs |
 | `report_contracts.html` | `/contracts` | Contratos |
 | `report_epgs.html` | `/epgs` | Endpoint Groups |
@@ -217,6 +228,7 @@ Os CSVs têm proteção contra interpretação de células como fórmulas. Se o 
 | `report_fabric_nodes.html` | `/fabric_nodes` | Inventário de nodes do fabric |
 | `history.html` | `/history` | Eventos e auditoria de alterações |
 | `apic_resources.html` | `/apic_resources` | Recursos de cada APIC; API em `/api/apic_resources` |
+| `operational_health.html` | `/tenant_health` e `/switch_cpu` | Tabelas de saúde por tenant e CPU dos switches |
 | `diagnostics_base.html` | Sem rota própria | Estrutura compartilhada das telas de diagnóstico |
 | `report_up.html` | `/up`, fora do menu principal | Relatório de interfaces ativas mantido por compatibilidade |
 | `report_down.html` | `/down`, fora do menu principal | Relatório de interfaces inativas mantido por compatibilidade |

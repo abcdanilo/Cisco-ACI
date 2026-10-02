@@ -21,9 +21,11 @@ from dotenv import load_dotenv
 from werkzeug.exceptions import HTTPException
 from aci_diagnostics import register_diagnostics, csv_cell
 from aci_portchannels import register_portchannels
-from aci_access import register_access
+from aci_access import register_access, configured_access_ports
 from aci_history import register_history
 from aci_resources import register_resources
+from aci_bindings import register_bindings
+from aci_health import register_health
 from aci_l3out import register_l3out
 
 load_dotenv()
@@ -456,6 +458,19 @@ def get_acc_ports():
         for x in apic_get('/api/class/ethpmPhysIf.json',
                           params={"query-target-filter": 'eq(ethpmPhysIf.intfT,"phy")'})
     }
+    unresolved = {p['acc'] for p in all_ports if not p['dn']}
+    if unresolved:
+        try:
+            profiles = apic_get('/api/class/infraAccPortP.json', params={'rsp-subtree': 'full'})
+            switches = apic_get('/api/class/infraNodeP.json', params={'rsp-subtree': 'full'})
+            resolved = {name: configured_access_ports(groups[name]['policy_group_dn'],
+                        profiles, switches, l1_map) for name in unresolved}
+            all_ports = [p for p in all_ports if p['dn'] or not resolved.get(p['acc'])]
+            for name, ports in resolved.items():
+                all_ports.extend(dict(p, acc=name) for p in ports)
+        except Exception:
+            logger.exception('Falha ao resolver seletores de portas ACC')
+            collection_warning('Coleta incompleta: seletores de portas ACC indisponíveis.')
     rows, seen = [], set()
     for p in all_ports:
         key = (p['acc'], p['dn'])
@@ -469,6 +484,8 @@ def get_acc_ports():
             "descr":  l1a.get("descr") or groups[p['acc']]['group_descr'],
             "status": op.get("operSt", "-"),
             "acc":    p["acc"],
+            "pod": p['pod'], "node": p['node'], "iface": p['iface'],
+            "association_source": p.get('association_source', 'Deployment' if p['dn'] else 'Não resolvida'),
             "path":   f"pod-{p['pod']} / node-{p['node']} / {p['iface']}" if p['dn'] else 'Interface não informada pelo deployment', 
             "speed":  op.get("operSpeed") or l1a.get("speed") or "-",
         })
@@ -1152,6 +1169,8 @@ register_access(app, lambda *args, **kwargs: apic_get(*args, **kwargs), cached, 
 
 register_history(app, lambda *args, **kwargs: _apic_get_page(*args, **kwargs), _json_route)
 register_resources(app, lambda *args, **kwargs: apic_get(*args, **kwargs), cached, _json_route, collection_warning)
+register_bindings(app, lambda *args, **kwargs: apic_get(*args, **kwargs), cached, _json_route)
+register_health(app, lambda *args, **kwargs: apic_get(*args, **kwargs), cached, _json_route, collection_warning)
 
 register_l3out(app, lambda *args, **kwargs: apic_get(*args, **kwargs), get_l3out_subnets, cached, _json_route)
 

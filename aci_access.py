@@ -57,6 +57,41 @@ def usage_tree(group_dn, profiles, switches):
     return usages
 
 
+def configured_access_ports(group_dn, profiles, switches, physical_dns):
+    """Resolve explicit selector ranges against existing physical interfaces only."""
+    def inside(value, start, end):
+        try:
+            return int(start) <= int(value) <= int(end)
+        except (TypeError, ValueError):
+            return False
+
+    interfaces = []
+    node_pods = {}
+    for dn in physical_dns:
+        match = re.fullmatch(r'topology/pod-(\d+)/node-(\d+)/sys/phys-\[(eth(\d+)/(\d+))\]', dn)
+        if match:
+            pod, node, iface, card, port = match.groups()
+            interfaces.append((dn, pod, node, iface, card, port))
+            node_pods.setdefault(node, set()).add(pod)
+    found = {}
+    for usage in usage_tree(group_dn, profiles, switches):
+        if 'formed' not in usage['relation_states']:
+            continue
+        for switch in usage['switch_profiles']:
+            if 'formed' not in switch['states']:
+                continue
+            ranges = [r for leaf in switch['leaves'] for r in leaf['ranges']]
+            for dn, pod, node, iface, card, port in interfaces:
+                # Node selectors do not identify a pod; do not guess if ambiguous.
+                if len(node_pods[node]) != 1 or not any(inside(node, r['from'], r['to']) for r in ranges):
+                    continue
+                if any(inside(card, b['fromCard'], b['toCard']) and
+                       inside(port, b['fromPort'], b['toPort']) for b in usage['ports']):
+                    found[dn] = dict(dn=dn, pod=pod, node=node, iface=iface,
+                                     policy_group_dn=group_dn, association_source='Seletores de acesso')
+    return list(found.values())
+
+
 def collect_access(dn, get, warning):
     data = get('/api/node/mo/'+quote(dn,safe='/')+'.json', params={'rsp-subtree':'children'})
     group = next((x['infraAccPortGrp'] for x in data if 'infraAccPortGrp' in x), None)

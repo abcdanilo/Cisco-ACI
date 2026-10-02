@@ -27,6 +27,7 @@
     for(const group of groups){
       const row=create('tr',null,'group-start'),name=create('td',null,'group-name');
       name.append(create('strong',group.name));
+      if(group.kind!=='unassociated'){const link=create('a','VLANs / EPGs');link.href='/epg_bindings?'+new URLSearchParams({path:group.id});const line=create('div');line.append(link);name.append(line);}
       if(group.coverage==='partial')name.append(create('small','Associação parcial','stale'));
       if(group.nodes.some(n=>n.mapping==='inferred'))name.append(create('small','Associação por nome + topologia','muted'));
       const peers=create('td',`Pod ${group.pod}`,'mono'),pcs=create('td'),states=create('td'),members=create('td',null,'compact-members');

@@ -1,0 +1,20 @@
+{% extends "diagnostics_base.html" %}
+{% block title %}VLANs e EPGs por porta — ACI{% endblock %}
+{% block scripts %}<script src="/static/epg-bindings.js" defer></script>{% endblock %}
+{% block content %}
+<h1>VLANs e EPGs por porta</h1>
+<p>Associações estáticas configuradas. Um vínculo não comprova tráfego ativo; associações dinâmicas de VMM não fazem parte desta consulta.</p>
+<section class="panel"><form id="bindingFilters">
+<label>Tenant<select id="tenant"><option value="">Todos</option></select></label>
+<label>Node<select id="node"><option value="">Todos</option></select></label>
+<label>Pesquisar VLAN, EPG ou caminho<input id="query" type="search"></label>
+<button id="reload" type="button">Atualizar dados</button><button id="clear" class="secondary" type="button">Limpar filtros</button>
+</form><p id="pathFilter" class="mono hint" hidden></p></section>
+<p id="status" role="status"></p><p id="error" class="warning" role="alert" hidden></p>
+<div class="result-toolbar"><p id="count"></p><a id="csv" class="button secondary" hidden>Exportar seleção CSV</a></div>
+<p id="coverage" class="hint"></p>
+<p id="empty" class="warning" role="status" hidden></p>
+<p class="hint">O filtro por caminho é exato. Uma porta física mostra seus vínculos diretos; vínculos de PC/vPC devem ser consultados pelo caminho lógico do grupo.</p>
+<div class="pc-table-scroll"><table class="pc-table"><thead><tr><th>Tenant</th><th>Application Profile</th><th>EPG</th><th>VLAN</th><th>Modo</th><th>Deployment</th><th>Estado da relação</th><th>Pod / Nodes</th><th>Porta / Grupo</th></tr></thead><tbody id="rows"></tbody></table></div>
+<div class="result-toolbar"><button id="prev" class="secondary">Anterior</button><span id="page"></span><button id="next" class="secondary">Próxima</button></div>
+{% endblock %}

@@ -3,11 +3,12 @@
 {% block scripts %}<script src="/static/l3out-explorer.js" defer></script>{% endblock %}
 {% block content %}
 <h1>Consultar L3Out por tenant</h1>
-<p>Selecione os nomes coletados da APIC. Este relatório mostra prefixos de External EPG, não rotas estáticas ou aprendidas.</p>
+<p>Selecione prefixos de External EPG ou rotas estáticas configuradas. Rotas aprendidas e instalação na tabela de encaminhamento não são verificadas.</p>
 <section class="panel"><form id="l3Filters">
+<label>Consulta<select id="mode"><option value="prefixes">Prefixos de External EPG</option><option value="static">Rotas estáticas</option></select></label>
 <label>Tenant<select id="tenant"><option value="">Todos</option></select></label>
 <label>L3Out<select id="l3out"><option value="">Todos</option></select></label>
-<label style="flex:1;min-width:180px">Pesquisar prefixo, External EPG ou scope<input id="query" type="search"></label>
+<label style="flex:1;min-width:180px">Pesquisar prefixo, EPG, node ou next hop<input id="query" type="search"></label>
 <button id="reload" type="button">Atualizar dados</button><button id="clear" class="secondary" type="button">Limpar filtros</button>
 </form></section>
 <p id="l3Status" role="status"></p><p id="l3Error" class="warning" role="alert" hidden></p>
@@ -15,6 +16,6 @@
 <p id="l3Empty" class="empty" hidden></p>
 <div class="pc-table-scroll"><table class="pc-table" id="l3Table"><thead><tr><th>Tenant</th><th>L3Out</th><th>External EPG</th><th>Prefixo</th><th>Scope</th></tr></thead><tbody id="l3Rows"></tbody></table></div>
 <div class="result-toolbar"><button id="prev" class="secondary">Anterior</button><span id="page"></span><button id="next" class="secondary">Próxima</button></div>
-<p class="hint">Grupos sem prefixos também aparecem na seleção. A quantidade conta registros por External EPG; o mesmo prefixo pode estar presente em mais de um grupo. O CSV inclui toda a seleção.</p>
+<p class="hint" id="countHint">O CSV inclui toda a seleção.</p>
 <style>#l3Filters select{max-width:100%}#l3Filters label{min-width:0;max-width:100%}#l3Table td{overflow-wrap:anywhere;max-width:350px}#l3Table{min-width:650px}</style>
 {% endblock %}
