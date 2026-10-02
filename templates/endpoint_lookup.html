@@ -2,7 +2,7 @@
 {% block title %}Localizador de endpoints — ACI{% endblock %}
 {% block page %}endpoint{% endblock %}
 {% block content %}
-<header><p class="eyebrow">SERVIDORES / DIAGNÓSTICO</p><h1>Localizar servidor</h1><p>Consulte tenant, EPG, VLAN, conexão e velocidades das portas.</p></header>
+<header><p class="eyebrow">SERVIDORES / DIAGNÓSTICO</p><h1>Localizar servidor</h1><p>Consulte tenant, EPG, VLAN, leaf, porta ou vPC, estado, velocidades e vizinhos LLDP/CDP.</p></header>
 <section class="panel">
   <form id="lookupForm" class="lookup-form">
     <label>Buscar por<select id="lookupMode"><option value="address">IP ou MAC exato</option><option value="name">Nome / descrição do endpoint</option></select></label>
@@ -11,6 +11,7 @@
   </form>
   <p class="hint">IP/MAC: correspondência exata. Nome: pesquisa parcial nos nomes, aliases e descrições do endpoint retornados pela APIC. Não consulta DNS nem inventário externo. Candidatos com nomes semelhantes são exibidos separadamente.</p>
 </section>
+<p class="hint">Vizinhos LLDP/CDP são equipamentos anunciados na porta do leaf: podem ser um hypervisor ou switch intermediário, não necessariamente o servidor pesquisado. Ausência de anúncio não significa porta desconectada. Membros PC/vPC são exibidos somente quando a associação física é confirmada.</p>
 <div class="result-toolbar"><p id="status" role="status">Informe um endereço para começar.</p><a id="export" class="button secondary" hidden>Exportar resultados CSV</a></div>
 <p id="warning" class="warning" role="alert" hidden></p>
 <section id="results" aria-label="Resultados da busca"><div class="empty">A localização e os vínculos do endpoint aparecerão aqui.</div></section>

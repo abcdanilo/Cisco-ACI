@@ -4,6 +4,7 @@ import io
 import re
 from flask import Response, render_template, request
 from aci_diagnostics import csv_cell
+from aci_vlan_sources import collect_vlan_sources
 
 
 def collect_bindings(get):
@@ -33,10 +34,11 @@ def select_bindings(rows,args):
     return [r for r in rows if (not args.get('tenant') or r['tenant']==args['tenant'])
         and (not args.get('node') or args['node'] in r['nodes'])
         and (not args.get('path') or r['path']==args['path'])
+        and (not args.get('source') or r.get('source')==args['source'])
         and (not q or q in ' '.join(str(v) for v in r.values()).casefold())]
 
 
-def register_bindings(app,get,cached,json_route):
+def register_bindings(app,get,cached,json_route,warning=lambda message: None):
     @cached()
     def binding_tenants():
         return sorted({a['name'] for item in get('/api/class/fvTenant.json')
@@ -45,6 +47,32 @@ def register_bindings(app,get,cached,json_route):
     @cached()
     def bindings():
         return collect_bindings(get)
+
+    @cached()
+    def port_vlans():
+        try:
+            static_rows = collect_bindings(get)
+        except Exception:
+            warning('Cobertura parcial de VLANs: consulta fvRsPathAtt indisponível.')
+            static_rows = []
+        return collect_vlan_sources(get, static_rows, warning)
+
+    @app.get('/api/port_vlans')
+    def port_vlans_api():
+        return json_route(lambda: select_bindings(port_vlans(), request.args))
+
+    @app.get('/export_csv/port_vlans')
+    def port_vlans_csv():
+        output=io.StringIO();writer=csv.writer(output)
+        fields=['tenant','source','evidence','application','epg','l3out','vlan','mode','deployment',
+                'state','pod','nodes','port','path','aep','domain','address','interface_type','note','dn']
+        writer.writerow(['Tenant','Origem','Evidência','Application Profile','EPG','L3Out','Encap','Modo',
+                         'Deployment','Estado da relação','Pod','Nodes','Porta / Grupo','Caminho',
+                         'AEP','Domínio','Endereço','Tipo de interface','Observação','DN'])
+        for row in select_bindings(port_vlans(), request.args):
+            writer.writerow([csv_cell('; '.join(row[k]) if isinstance(row[k],list) else row[k]) for k in fields])
+        return Response('\ufeff'+output.getvalue(),mimetype='text/csv',headers={
+            'Content-Disposition':'attachment; filename=port_vlans.csv','Cache-Control':'no-store'})
 
     @app.get('/epg_bindings')
     def epg_bindings_page():

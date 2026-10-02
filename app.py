@@ -1169,7 +1169,7 @@ register_access(app, lambda *args, **kwargs: apic_get(*args, **kwargs), cached, 
 
 register_history(app, lambda *args, **kwargs: _apic_get_page(*args, **kwargs), _json_route)
 register_resources(app, lambda *args, **kwargs: apic_get(*args, **kwargs), cached, _json_route, collection_warning)
-register_bindings(app, lambda *args, **kwargs: apic_get(*args, **kwargs), cached, _json_route)
+register_bindings(app, lambda *args, **kwargs: apic_get(*args, **kwargs), cached, _json_route, collection_warning)
 register_health(app, lambda *args, **kwargs: apic_get(*args, **kwargs), cached, _json_route, collection_warning)
 
 register_l3out(app, lambda *args, **kwargs: apic_get(*args, **kwargs), get_l3out_subnets, cached, _json_route)

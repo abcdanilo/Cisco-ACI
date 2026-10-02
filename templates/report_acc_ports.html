@@ -283,7 +283,7 @@
     const match = String(path || '').match(/^pod-(\d+) \/ node-(\d+) \/ (eth\d+\/\d+(?:\/\d+)?)$/);
     if (!match) return '';
     const target = `topology/pod-${match[1]}/paths-${match[2]}/pathep-[${match[3]}]`;
-    return `<br><a href="/epg_bindings?path=${encodeURIComponent(target)}">VLANs / EPGs diretos</a>`;
+    return `<br><a href="/epg_bindings?path=${encodeURIComponent(target)}">VLANs / EPGs por origem</a>`;
   }
 
   function render() {

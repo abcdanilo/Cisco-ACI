@@ -3,9 +3,10 @@
 {% block scripts %}<script src="/static/epg-bindings.js" defer></script>{% endblock %}
 {% block content %}
 <h1>VLANs e EPGs por porta</h1>
-<p>Associações estáticas configuradas. Um vínculo não comprova tráfego ativo; associações dinâmicas de VMM não fazem parte desta consulta.</p>
+<p>Vínculos estáticos, AEP, domínios VMM, deployments dinâmicos e interfaces L3Out. A origem e a evidência são apresentadas separadamente; um vínculo não comprova tráfego ativo.</p>
 <section class="panel"><form id="bindingFilters">
 <label>Tenant<select id="tenant"><option value="">Todos</option></select></label>
+<label>Origem<select id="source"><option value="">Todas</option></select></label>
 <label>Node<select id="node"><option value="">Todos</option></select></label>
 <label>Pesquisar VLAN, EPG ou caminho<input id="query" type="search"></label>
 <button id="reload" type="button">Atualizar dados</button><button id="clear" class="secondary" type="button">Limpar filtros</button>
@@ -14,7 +15,7 @@
 <div class="result-toolbar"><p id="count"></p><a id="csv" class="button secondary" hidden>Exportar seleção CSV</a></div>
 <p id="coverage" class="hint"></p>
 <p id="empty" class="warning" role="status" hidden></p>
-<p class="hint">O filtro por caminho é exato. Uma porta física mostra seus vínculos diretos; vínculos de PC/vPC devem ser consultados pelo caminho lógico do grupo.</p>
-<div class="pc-table-scroll"><table class="pc-table"><thead><tr><th>Tenant</th><th>Application Profile</th><th>EPG</th><th>VLAN</th><th>Modo</th><th>Deployment</th><th>Estado da relação</th><th>Pod / Nodes</th><th>Porta / Grupo</th></tr></thead><tbody id="rows"></tbody></table></div>
+<p class="hint">O filtro por caminho é exato. Associações sem porta resolvida aparecem ao limpar esse filtro. AEP apresenta portas físicas resolvidas; vínculos estáticos de PC/vPC usam o caminho lógico. Encapsulamento não informado não significa VLAN zero.</p>
+<div class="pc-table-scroll"><table class="pc-table"><thead><tr><th>Tenant</th><th>Origem / Evidência</th><th>Application Profile</th><th>EPG / L3Out</th><th>Encap / VLAN</th><th>Estado da relação</th><th>Pod / Nodes</th><th>Porta / Grupo</th><th>Detalhes</th></tr></thead><tbody id="rows"></tbody></table></div>
 <div class="result-toolbar"><button id="prev" class="secondary">Anterior</button><span id="page"></span><button id="next" class="secondary">Próxima</button></div>
 {% endblock %}

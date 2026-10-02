@@ -125,10 +125,13 @@ Os indicadores mostram switches, interfaces, endpoints e faults, com horários i
 
 1. Em **Endpoints**, abra **Localizar servidor**.
 2. Escolha IP/MAC exato ou nome/descrição e faça a busca.
-3. Confira tenant, EPG, encapsulamento e caminhos retornados.
-4. Abra uma interface identificada para consultar estado, velocidade e tráfego.
+3. Confira tenant, EPG, encapsulamento, nomes dos leafs e caminhos retornados.
+4. Veja estado administrativo/operacional, velocidades configurada/negociada e vizinhos LLDP/CDP por porta. PC/vPC mostra o agregado por node quando sua associação é confirmada.
+5. Abra uma interface para consultar tráfego ou use o atalho de VLANs/EPGs do caminho. O CSV inclui switches, estados, velocidades e vizinhos por porta.
 
 A busca por nome é parcial e ignora maiúsculas, usando os campos disponíveis no endpoint. Não consulta DNS ou CMDB. Quando não houver nome cadastrado no APIC, use IP ou MAC. Endpoints com endereços iguais em contextos diferentes permanecem separados.
+
+Vizinhos são consultados em `lldpAdjEp` e `cdpAdjEp` e associados pelo DN completo de pod, node e interface. Podem anunciar um hypervisor ou switch intermediário; não são uma confirmação da identidade do servidor pesquisado. Ausência de anúncio e falha de consulta são apresentadas separadamente. Falhas nessas consultas preservam a localização do endpoint e as demais informações disponíveis. As coletas usam cache e não representam uma fotografia simultânea do fabric.
 
 ### Interfaces e grupos de portas
 
@@ -146,9 +149,19 @@ Em **Consultar L3Out**, selecione tenant e L3Out e refine a busca. As opções v
 
 A tela permite alternar entre **prefixos de External EPG (`l3extSubnet`)** e **rotas estáticas configuradas (`ipRouteP` / `ipNexthopP`)**. Rotas estáticas mostram tenant, L3Out, node profile, pod, node, prefixo, próximos saltos e preferência. Cada rota por node conta uma vez, mesmo com vários next hops. Não são consultadas rotas aprendidas nem comprovada a instalação na tabela de encaminhamento. API: `/api/l3out_static_routes`; CSV filtrado: `/export_csv/l3out_static_routes`.
 
-Em **Endpoints → VLANs / EPGs por porta**, consulte vínculos estáticos `fvRsPathAtt`, com tenant, Application Profile, EPG, VLAN, modo, deployment e caminho. Filtre por tenant, node, texto ou caminho exato e exporte toda a seleção. Atalhos em ACC Ports, detalhes de interface e VPC Ports abrem os vínculos correspondentes. Uma porta física mostra vínculos diretos; consulte o grupo lógico para vínculos PC/vPC. Não inclui associações via AEP, vínculos dinâmicos de VMM ou interfaces L3Out, nem comprova tráfego. API: `/api/epg_bindings`; CSV: `/export_csv/epg_bindings`.
+Em **Endpoints → VLANs / EPGs por porta**, consulte associações por tenant, origem, node, texto ou caminho exato e exporte toda a seleção. A tabela distingue configuração de deployment informado pela APIC; nenhum registro comprova tráfego ativo. Origens disponíveis:
 
-O filtro Tenant consulta o inventário `fvTenant` pela API `/api/epg_binding_tenants`, incluindo tenants sem vínculos estáticos retornados. A tela informa a quantidade de tenants com vínculos e exibe uma explicação quando a seleção está vazia. Se o inventário falhar, os vínculos continuam disponíveis e um aviso informa que a lista de tenants está limitada à coleta de vínculos. As páginas exibem até 50 linhas; um resultado vazio não comprova ausência de VLANs no tenant.
+- **Estático:** vínculos diretos `fvRsPathAtt` de EPG para porta ou PC/vPC.
+- **AEP:** `infraRsFuncToEpg`, associado a grupos por `infraRsAttEntP`. Portas são resolvidas pelas relações formadas dos seletores e pelo inventário físico, sem presumir deployment da VLAN. Os limites de resolução de seletores são os mesmos de ACC Ports; vínculos sem portas resolvidas continuam visíveis.
+- **VMM:** `fvRsDomAtt` para domínios virtuais. Essa relação não determina a porta física nem necessariamente a VLAN alocada; valores desconhecidos permanecem não informados.
+- **Deployment dinâmico:** caminhos `fvDyPathAtt` e encapsulamentos dos respectivos `fvIfConn`, unidos pelo DN completo. Preserva pod e caminho explícitos, incluindo PC/vPC e FEX; não atribui o domínio VMM por coincidência de VLAN.
+- **L3Out:** interfaces `l3extRsPathL3OutAtt`, com caminho, encapsulamento, tipo e endereço da relação. Não atribui uma interface a um External EPG específico. Portas roteadas podem não possuir encapsulamento VLAN.
+
+Detalhes mostram os DNs, AEP/domínio, modo e limitações da associação. Registros de origens diferentes não são uma contagem de VLANs únicas. O filtro por caminho é exato: associações VMM sem porta resolvida ficam fora desse filtro; vínculos AEP são apresentados por porta física, enquanto vínculos estáticos de PC/vPC usam o caminho lógico. API ampliada: `/api/port_vlans`; CSV filtrado: `/export_csv/port_vlans`. As APIs `/api/epg_bindings` e `/export_csv/epg_bindings` preservam a consulta estática anterior.
+
+O filtro Tenant consulta o inventário `fvTenant` pela API `/api/epg_binding_tenants`, incluindo tenants sem associações retornadas. A tela informa a quantidade de registros por origem e exibe uma explicação quando a seleção está vazia. Falhas de consulta são indicadas como cobertura parcial, preservando as demais origens. Se o inventário falhar, os vínculos continuam disponíveis e um aviso informa que a lista de tenants está limitada à coleta de vínculos. As páginas exibem até 50 linhas; um resultado vazio não comprova ausência de VLANs no tenant.
+
+Referências das relações consultadas: [EPGs e associação por AEP](https://www.cisco.com/c/en/us/td/docs/dcn/aci/apic/5x/layer-2-configuration/cisco-aci-layer-2-networking-configuration-guide-52x/epgs-52x.pdf), [associação VMM](https://developer.cisco.com/docs/apic-rest-api-configuration-guide/configuring-intra-epg-isolation-for-a-vmware-vds-or-microsoft-hyper-v-virtual-switch/) e [interfaces L3Out](https://developer.cisco.com/docs/apic-rest-api-configuration-guide/configuring-aci-border-gateways/).
 
 Em **Bridge Domains**, a coluna **Subnets (IP/prefixo)** mostra os endereços IPv4/IPv6 cadastrados diretamente no BD, preservando o endereço e o prefixo configurados. É possível pesquisar por subnet. BDs sem esses objetos são identificados; subnets de EPGs não são apresentadas como subnets do BD.
 
@@ -177,7 +190,7 @@ O botão **Atualizar dados** renova o relatório e as consultas dependentes. O c
 | Exportação | Conteúdo |
 | --- | --- |
 | Relatórios gerais, como interfaces, BDs e endpoints | Relatório completo, independentemente dos filtros locais da tabela |
-| Localizar servidor | Resultados da busca atual; detalhes operacionais adicionais das portas ficam na tela |
+| Localizar servidor | Resultados da busca atual, switches, estados/velocidades e vizinhos por porta; uma linha por endpoint |
 | VPC Ports / visão consolidada | Todos os grupos filtrados, com uma linha por membro e indicação da associação |
 | Seleção de L3Out | Todos os registros da seleção e busca, além da página visível |
 
@@ -193,6 +206,7 @@ Os CSVs têm proteção contra interpretação de células como fórmulas. Se o 
 | `aci_access.py` | Políticas, relações e seletores de grupos de acesso |
 | `aci_l3out.py` | Inventário dinâmico de tenants/L3Outs e seleção de prefixos |
 | `aci_bindings.py` | Vínculos estáticos de EPG/VLAN por caminho, filtros e CSV |
+| `aci_vlan_sources.py` | Ampliação de VLANs por origem: AEP, VMM, deployment dinâmico e interfaces L3Out |
 | `aci_history.py` | Consultas paginadas de eventos e auditoria |
 | `aci_resources.py` | CPU, memória e armazenamento dos controladores APIC |
 | `aci_health.py` | Saúde e contagem de faults por tenant; CPU de Leafs/Spines |

@@ -168,6 +168,43 @@ def csv_cell(value):
     return "'" + value if value.lstrip().startswith(('=', '+', '-', '@')) else value
 
 
+def collect_server_context(apic_get, warning):
+    nodes, neighbors, availability = {}, {}, {}
+    for cls, protocol in [('fabricNode', ''), ('lldpAdjEp', 'LLDP'), ('cdpAdjEp', 'CDP')]:
+        try:
+            objects = apic_get('/api/class/'+cls+'.json')
+            availability[protocol or 'nodes'] = True
+        except Exception:
+            warning(f'Localizador: consulta {protocol or "nomes dos switches"} indisponível.')
+            availability[protocol or 'nodes'] = False
+            continue
+        seen = set()
+        for item in objects:
+            a = item.get(cls, {}).get('attributes', {})
+            dn = a.get('dn', '')
+            if not dn or dn in seen:
+                continue
+            seen.add(dn)
+            if cls == 'fabricNode':
+                if re.fullmatch(r'topology/pod-\d+/node-\d+', dn):
+                    nodes[dn] = a.get('name', '')
+                continue
+            match = re.fullmatch(r'(topology/pod-\d+/node-\d+)/sys/'+protocol.lower()+r'/inst/if-\[(eth\d+/\d+(?:/\d+)?)\]/adj-[^/]+', dn)
+            if not match:
+                continue
+            physical = match[1]+'/sys/phys-['+match[2]+']'
+            neighbors.setdefault(physical, []).append(dict(
+                protocol=protocol, dn=dn,
+                name=a.get('sysName', '') if protocol == 'LLDP' else a.get('devId', ''),
+                remote_port=a.get('portIdV', '') if protocol == 'LLDP' else a.get('portId', ''),
+                chassis=a.get('chassisIdV', ''), management_ip=a.get('mgmtIp', ''),
+                description=a.get('sysDesc', '') if protocol == 'LLDP' else a.get('plat', ''),
+                port_description=a.get('portDesc', ''), modified=a.get('modTs', '')))
+    for values in neighbors.values():
+        values.sort(key=lambda r: (r['protocol'], r['dn']))
+    return nodes, neighbors, availability
+
+
 def register_diagnostics(app, apic_get, cached, json_route, warning, collect_ports=None):
     @cached()
     def endpoint_inventory():
@@ -192,9 +229,14 @@ def register_diagnostics(app, apic_get, cached, json_route, warning, collect_por
         from aci_portchannels import collect_overview
         return collect_overview(apic_get,collect_ports,warning)
 
+    @cached()
+    def server_context():
+        return collect_server_context(apic_get, warning)
+
     def locate(kind,value):
         rows=copy.deepcopy(filter_endpoints(endpoint_inventory(),kind,value))
         if not rows:return rows
+        nodes, neighbors, availability = server_context()
         try:
             physical,operational=server_ports()
         except Exception:
@@ -207,6 +249,13 @@ def register_diagnostics(app, apic_get, cached, json_route, warning, collect_por
         for row in rows:
             row['match_type']=kind
             for path in row['paths']:
+                topology = re.match(r'topology/pod-(\d+)/(?:protpaths-(\d+)-(\d+)|paths-(\d+))/', path['dn'])
+                path['switches'] = []
+                if topology:
+                    pod, first, second, single = topology.groups()
+                    path['switches'] = [dict(pod=pod, node=node, name=nodes.get(f'topology/pod-{pod}/node-{node}', ''))
+                                        for node in ([first, second] if first else [single])]
+                path['aggregates'] = []
                 members=[]
                 if path['interface_dn']:members=[path['interface_dn']]
                 else:
@@ -215,12 +264,18 @@ def register_diagnostics(app, apic_get, cached, json_route, warning, collect_por
                     if group:
                         path['mapping']='Completa' if group['coverage']=='complete' else 'Parcial'
                         members=[m['dn'] for n in group['nodes'] if n['mapping']=='confirmed' for m in n['members']]
+                        path['aggregates'] = [dict(node=n['node'], mapping=n['mapping'],
+                            id=(n['aggregate'] or {}).get('id','') if n['mapping']=='confirmed' else '',
+                            oper_state=(n['aggregate'] or {}).get('oper_state','') if n['mapping']=='confirmed' else '')
+                            for n in group['nodes']]
                 path['ports']=[]
                 for dn in sorted(set(members)):
                     a=physical.get(dn,{});op=operational.get(dn,{})
                     path['ports'].append({'dn':dn,'description':a.get('descr',''),
                         'admin_state':a.get('adminSt',''),'oper_state':op.get('operSt',''),
-                        'configured_speed':a.get('speed',''),'oper_speed':op.get('operSpeed','')})
+                        'configured_speed':a.get('speed',''),'oper_speed':op.get('operSpeed',''),
+                        'neighbors':copy.deepcopy(neighbors.get(dn, [])),
+                        'neighbor_queries':{p:availability[p] for p in ('LLDP','CDP')}})
         return rows
 
     @app.get('/endpoint_lookup')
@@ -242,16 +297,28 @@ def register_diagnostics(app, apic_get, cached, json_route, warning, collect_por
         except ValueError as error:
             return jsonify(error=str(error)), 400
         try:
-            rows = filter_endpoints(endpoint_inventory(), kind, value)
+            rows = locate(kind, value)
         except Exception:
             app.logger.exception('Falha ao exportar localizador de endpoints')
             return jsonify(error='Falha ao consultar endpoints.'), 500
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow(['MAC','IPs','Tenant','Application Profile','EPG','VLAN/Encap','Interfaces','Endpoint DN'])
+        writer.writerow(['MAC','IPs','Tenant','Application Profile','EPG','VLAN/Encap','Interfaces','Endpoint DN',
+                         'Switches','Portas: administrativo / operacional','Portas: velocidade configurada / negociada','Vizinhos por porta'])
         for row in rows:
+            ports = [port for path in row['paths'] for port in path.get('ports', [])]
+            switches = sorted({f"Pod {s['pod']} / Node {s['node']}: {s['name'] or 'Indisponível'}" for path in row['paths'] for s in path.get('switches', [])})
+            neighbor_text = []
+            for port in ports:
+                for n in port['neighbors']:
+                    neighbor_text.append(f"{port['dn']} -> {n['protocol']}: {n['name'] or n['chassis'] or 'Não informado'} / {n['remote_port'] or 'Porta não informada'}")
+                for protocol, available in port['neighbor_queries'].items():
+                    if not available:neighbor_text.append(f"{port['dn']} -> {protocol}: consulta indisponível")
+                    elif not any(n['protocol']==protocol for n in port['neighbors']):neighbor_text.append(f"{port['dn']} -> {protocol}: nenhum vizinho retornado")
             writer.writerow([csv_cell(value) for value in (row['mac'], '; '.join(row['ips']), row['tenant'],
-                row['application'], row['epg'], row['encap'], '; '.join(path['dn'] for path in row['paths']), row['dn'])])
+                row['application'], row['epg'], row['encap'], '; '.join(path['dn'] for path in row['paths']), row['dn'],
+                '; '.join(switches), '; '.join(f"{p['dn']}: {p['admin_state'] or 'Indisponível'} / {p['oper_state'] or 'Indisponível'}" for p in ports),
+                '; '.join(f"{p['dn']}: {p['configured_speed'] or 'Indisponível'} / {p['oper_speed'] or 'Indisponível'}" for p in ports), '; '.join(neighbor_text))])
         return Response('\ufeff' + output.getvalue(), mimetype='text/csv; charset=utf-8', headers={
             'Content-Disposition': 'attachment; filename=endpoint_lookup.csv', 'Cache-Control': 'no-store'})
 

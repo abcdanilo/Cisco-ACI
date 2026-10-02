@@ -80,12 +80,26 @@
         item.append(path.interface_dn ? link(path.label, '/interface_details', {dn:path.interface_dn}) :
           ['vpc','port-channel'].includes(path.kind) ? link(path.label, '/portchannel_overview', {path:path.dn}) : document.createTextNode(path.label));
         if (!path.interface_dn) item.append(element('span', ' • ' + path.kind, 'muted'));
+        for(const sw of path.switches||[])item.append(element('p',`Pod ${sw.pod} / Node ${sw.node} • ${sw.name||'Nome do switch indisponível'}`,'muted'));
+        item.append(link('VLANs / EPGs deste caminho','/epg_bindings',{path:path.dn}));
         if(path.mapping)item.append(element('p','Associação PC/vPC: '+path.mapping,'muted'));
+        for(const ag of path.aggregates||[])item.append(element('p',`Node ${ag.node} • ${ag.id||'Agregado não confirmado'} • Estado: ${ag.oper_state||'Indisponível'} • Associação: ${ag.mapping}`,'muted'));
         for(const port of path.ports||[]){
           const box=element('div',null,'panel');box.append(link(port.dn,'/interface_details',{dn:port.dn}));
           const props=element('dl',null,'properties');
           for(const [label,value] of [['Descrição da porta',port.description],['Administrativo',port.admin_state],['Operacional',port.oper_state],['Velocidade configurada',port.configured_speed],['Velocidade negociada',port.oper_speed]])property(props,label,value);
-          box.append(props);item.append(box);
+          box.append(props);
+          box.append(element('h4','Vizinhos da porta • LLDP / CDP'));
+          for(const n of port.neighbors||[]){
+            const neighbor=element('dl',null,'properties');
+            for(const [label,value] of [['Protocolo',n.protocol],['Equipamento anunciado',n.name||n.chassis],['Porta remota',n.remote_port],['IP de gerenciamento',n.management_ip],['Descrição remota',n.description],['Descrição da porta remota',n.port_description]])property(neighbor,label,value);
+            box.append(neighbor);
+          }
+          for(const protocol of ['LLDP','CDP']){
+            if(!port.neighbor_queries?.[protocol])box.append(element('p',protocol+': consulta indisponível.','muted'));
+            else if(!(port.neighbors||[]).some(n=>n.protocol===protocol))box.append(element('p',protocol+': nenhum vizinho retornado.','muted'));
+          }
+          item.append(box);
         }
         if(!path.interface_dn&&!path.ports?.length)item.append(element('p','Portas físicas não confirmadas. Abra o caminho para investigar.','muted'));
         list.append(item);
