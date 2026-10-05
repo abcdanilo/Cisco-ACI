@@ -234,7 +234,8 @@ def register_diagnostics(app, apic_get, cached, json_route, warning, collect_por
         return collect_server_context(apic_get, warning)
 
     def locate(kind,value):
-        rows=copy.deepcopy(filter_endpoints(endpoint_inventory(),kind,value))
+        rows=copy.deepcopy([r for r in endpoint_inventory() if r['dn']==value] if kind=='dn'
+                           else filter_endpoints(endpoint_inventory(),kind,value))
         if not rows:return rows
         nodes, neighbors, availability = server_context()
         try:
@@ -281,6 +282,27 @@ def register_diagnostics(app, apic_get, cached, json_route, warning, collect_por
     @app.get('/endpoint_lookup')
     def endpoint_lookup_page():
         return render_template('endpoint_lookup.html')
+
+    @app.get('/api/endpoint_inventory')
+    def endpoint_inventory_api():
+        return json_route(endpoint_inventory)
+
+    @app.get('/api/endpoint_details')
+    def endpoint_details_api():
+        dn = request.args.get('dn', '')
+        if len(dn)>2048 or not re.fullmatch(r'uni/tn-[^/\s]+/ap-[^/\s]+/epg-[^/\s]+/cep-[^/\s]+', dn):
+            return jsonify(error='Informe um DN de endpoint válido.'),400
+        return json_route(lambda: locate('dn', dn))
+
+    @app.get('/export_csv/endpoint_inventory')
+    def endpoint_inventory_csv():
+        output=io.StringIO();writer=csv.writer(output)
+        writer.writerow(['MAC','IPs','Tenant','Application Profile','EPG','VLAN/Encap','Interfaces','Endpoint DN'])
+        for row in endpoint_inventory():
+            writer.writerow([csv_cell(v) for v in (row['mac'],'; '.join(row['ips']),row['tenant'],row['application'],
+                row['epg'],row['encap'],'; '.join(p['dn'] for p in row['paths']),row['dn'])])
+        return Response('\ufeff'+output.getvalue(),mimetype='text/csv',headers={
+            'Content-Disposition':'attachment; filename=endpoint_inventory.csv','Cache-Control':'no-store'})
 
     @app.get('/api/endpoint_lookup')
     def endpoint_lookup_api():

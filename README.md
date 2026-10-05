@@ -124,10 +124,13 @@ Os indicadores mostram switches, interfaces, endpoints e faults, com horários i
 ### Localizar um servidor
 
 1. Em **Endpoints**, abra **Localizar servidor**.
-2. Escolha IP/MAC exato ou nome/descrição e faça a busca.
-3. Confira tenant, EPG, encapsulamento, nomes dos leafs e caminhos retornados.
-4. Veja estado administrativo/operacional, velocidades configurada/negociada e vizinhos LLDP/CDP por porta. PC/vPC mostra o agregado por node quando sua associação é confirmada.
-5. Abra uma interface para consultar tráfego ou use o atalho de VLANs/EPGs do caminho. O CSV inclui switches, estados, velocidades e vizinhos por porta.
+2. A lista de endpoints carrega automaticamente, em blocos de 50 resultados. Clique em uma linha para carregar os detalhes daquele DN, preservando a distinção entre tenants mesmo quando o MAC se repete.
+3. Para restringir os resultados, escolha IP/MAC exato ou nome/descrição e faça a busca. Use **Mostrar todos** para voltar ao inventário.
+4. Confira tenant, EPG, encapsulamento, nomes dos leafs e caminhos retornados.
+5. Veja estado administrativo/operacional, velocidades configurada/negociada e vizinhos LLDP/CDP por porta. PC/vPC mostra o agregado por node quando sua associação é confirmada.
+6. Abra uma interface para consultar tráfego ou use o atalho de VLANs/EPGs do caminho. O CSV de uma busca inclui switches, estados, velocidades e vizinhos por porta; **Exportar lista CSV** exporta o inventário básico completo, sem consultar detalhes de todos os endpoints.
+
+A lista inicial usa `/api/endpoint_inventory` e sua exportação `/export_csv/endpoint_inventory`. Os detalhes são consultados em `/api/endpoint_details?dn=...` ao expandir uma linha. **Atualizar dados** renova a lista ou busca atual; na lista completa, os detalhes serão renovados ao reabrir cada resultado.
 
 A busca por nome é parcial e ignora maiúsculas, usando os campos disponíveis no endpoint. Não consulta DNS ou CMDB. Quando não houver nome cadastrado no APIC, use IP ou MAC. Endpoints com endereços iguais em contextos diferentes permanecem separados.
 

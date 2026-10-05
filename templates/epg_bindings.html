@@ -8,9 +8,10 @@
 <label>Tenant<select id="tenant"><option value="">Todos</option></select></label>
 <label>Origem<select id="source"><option value="">Todas</option></select></label>
 <label>Node<select id="node"><option value="">Todos</option></select></label>
-<label>Pesquisar VLAN, EPG ou caminho<input id="query" type="search"></label>
+<label>Pesquisar porta, grupo, VLAN ou EPG<input id="query" type="search" placeholder="Ex.: eth1/21, VPC_WEB, vlan-100" aria-describedby="portSearchHint"></label>
 <button id="reload" type="button">Atualizar dados</button><button id="clear" class="secondary" type="button">Limpar filtros</button>
 </form><p id="pathFilter" class="mono hint" hidden></p></section>
+<p id="portSearchHint" class="hint">Pesquise pela porta (eth1/21), nome do grupo PC/vPC, VLAN, EPG ou caminho. A busca é parcial e ignora maiúsculas; combine com o filtro Node para selecionar o switch.</p>
 <p id="status" role="status"></p><p id="error" class="warning" role="alert" hidden></p>
 <div class="result-toolbar"><p id="count"></p><a id="csv" class="button secondary" hidden>Exportar seleção CSV</a></div>
 <p id="coverage" class="hint"></p>

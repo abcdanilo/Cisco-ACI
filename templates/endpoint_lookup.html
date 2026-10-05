@@ -6,13 +6,15 @@
 <section class="panel">
   <form id="lookupForm" class="lookup-form">
     <label>Buscar por<select id="lookupMode"><option value="address">IP ou MAC exato</option><option value="name">Nome / descrição do endpoint</option></select></label>
-    <label for="query">IP, MAC ou nome<input id="query" name="q" required maxlength="80" autocomplete="off" spellcheck="false" placeholder="IP, MAC ou parte do nome"></label>
+    <label for="query">IP, MAC ou nome<input id="query" name="q" maxlength="80" autocomplete="off" spellcheck="false" placeholder="IP, MAC ou parte do nome"></label>
     <button type="submit" id="search">Localizar</button><button type="button" id="refresh" class="secondary" disabled>Atualizar dados</button>
+    <button type="button" id="showAll" class="secondary">Mostrar todos</button>
   </form>
   <p class="hint">IP/MAC: correspondência exata. Nome: pesquisa parcial nos nomes, aliases e descrições do endpoint retornados pela APIC. Não consulta DNS nem inventário externo. Candidatos com nomes semelhantes são exibidos separadamente.</p>
 </section>
 <p class="hint">Vizinhos LLDP/CDP são equipamentos anunciados na porta do leaf: podem ser um hypervisor ou switch intermediário, não necessariamente o servidor pesquisado. Ausência de anúncio não significa porta desconectada. Membros PC/vPC são exibidos somente quando a associação física é confirmada.</p>
-<div class="result-toolbar"><p id="status" role="status">Informe um endereço para começar.</p><a id="export" class="button secondary" hidden>Exportar resultados CSV</a></div>
+<div class="result-toolbar"><p id="status" role="status">Carregando endpoints…</p><a id="export" class="button secondary" hidden>Exportar resultados CSV</a></div>
 <p id="warning" class="warning" role="alert" hidden></p>
+<p class="hint">Clique em um resultado para expandir ou recolher as informações de conexão, portas e vizinhos.</p>
 <section id="results" aria-label="Resultados da busca"><div class="empty">A localização e os vínculos do endpoint aparecerão aqui.</div></section>
 {% endblock %}

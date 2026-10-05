@@ -54,9 +54,46 @@
   function setBusy(value) {
     busy = value;
     byId('search').disabled = value;
-    byId('refresh').disabled = value || !(mode === 'endpoint' ? lastQuery : lastDn);
+    byId('refresh').disabled = value || (mode !== 'endpoint' && !lastDn);
+    if(mode==='endpoint')byId('showAll').disabled=value;
   }
-  function endpointCard(row) {
+  function endpointCard(row, lazy = false, force = false) {
+    const result = element('details', null, 'endpoint-result');
+    const summary = element('summary', null, 'endpoint-summary');
+    const name = row.description && row.description !== row.mac ? row.description : 'Nome não informado';
+    for (const [label, value] of [['Servidor / MAC', name], ['IP', (row.ips || []).join(' • ') || 'Não informado'],
+      ['Tenant', row.tenant || 'Não informado'], ['EPG', row.epg || 'Não informado'], ['VLAN', row.encap || 'Não informada']]) {
+      const cell = element('span', null, 'endpoint-summary-cell');
+      cell.append(element('span', label, 'endpoint-summary-label'), element('span', value));
+      if (label === 'Servidor / MAC') cell.append(element('span', row.mac || 'MAC não informado', 'mono'));
+      summary.append(cell);
+    }
+    const action = element('span', 'Ver detalhes', 'endpoint-summary-action');
+    summary.append(action);result.append(summary);
+    result.addEventListener('toggle', () => { action.textContent = result.open ? 'Recolher' : 'Ver detalhes'; });
+    if(lazy){
+      const content=element('div',null,'endpoint-card');result.append(content);
+      let loading=false,loaded=false;
+      result.addEventListener('toggle',async()=>{
+        if(!result.open||loading||loaded)return;
+        loading=true;content.replaceChildren(element('p','Consultando portas e vizinhos…','muted'));
+        try{
+          const query=new URLSearchParams({dn:row.dn});if(force)query.set('refresh','1');
+          const response=await fetch('/api/endpoint_details?'+query,{cache:'no-store'}),body=await response.json();
+          if(!response.ok)throw Error(body.error||'Falha ao consultar detalhes.');
+          const detail=Array.isArray(body)?body.find(r=>r.dn===row.dn):null;
+          if(!detail)throw Error('Endpoint não encontrado na coleta atual. Atualize a lista.');
+          const card=endpointCard(detail).querySelector('.endpoint-card');
+          content.replaceChildren(...card.childNodes);
+          const warnings=JSON.parse(response.headers.get('X-Collection-Warnings')||'[]');
+          if(warnings.length)content.prepend(element('p',warnings.join('\n'),'warning'));
+          content.prepend(element('p','Detalhes • Coleta: '+timestamp(response.headers.get('X-Collected-At')),'muted'));
+          loaded=true;
+        }catch(error){content.replaceChildren(element('p',error.message+' Recolha e abra novamente para tentar outra vez.','warning'));}
+        finally{loading=false;}
+      });
+      return result;
+    }
     const card = element('article', null, 'endpoint-card');
     const heading = element('div', null, 'heading-row');
     heading.append(element('h2', row.mac || 'MAC indisponível'), element('span', row.encap || 'Encapsulamento indisponível', 'badge'));
@@ -108,7 +145,8 @@
     }
     paths.append(element('p', row.dn || 'DN não informado', 'mono muted'));
     card.append(paths);
-    return card;
+    result.append(card);
+    return result;
   }
   async function searchEndpoint(query, force = false) {
     if (busy) return;
@@ -118,11 +156,12 @@
     byId('results').replaceChildren();
     try {
       const lookupMode=force?lastMode:byId('lookupMode').value;
-      const {body:rows, metadata} = await load('/api/endpoint_lookup', {q:query,mode:lookupMode}, force);
+      const inventory=!query;
+      const {body:rows, metadata} = await load(inventory?'/api/endpoint_inventory':'/api/endpoint_lookup', inventory?{}:{q:query,mode:lookupMode}, force);
       if (!Array.isArray(rows)) throw new Error('Formato de endpoints inesperado.');
       lastQuery = query;
       lastMode=lookupMode;
-      history.replaceState(null, '', '/endpoint_lookup?' + new URLSearchParams({q:query,mode:lookupMode}));
+      history.replaceState(null, '', '/endpoint_lookup'+(inventory?'':'?' + new URLSearchParams({q:query,mode:lookupMode})));
       byId('status').textContent = rows.length + ' endpoint(s) encontrado(s) • ' + metadata;
       if (!rows.length) byId('results').append(element('div', 'Nenhum endpoint encontrado. Se o nome não estiver disponível na APIC, tente IP ou MAC.', 'empty'));
       else {
@@ -131,12 +170,13 @@
         more.type = 'button';
         const next = () => {
           more.remove();
-          rows.slice(offset, offset + 50).forEach(row => byId('results').append(endpointCard(row)));
+          rows.slice(offset, offset + 50).forEach(row => byId('results').append(endpointCard(row,inventory,force)));
           offset += 50;
           if (offset < rows.length) byId('results').append(more);
         };
         more.addEventListener('click', next); next();
-        byId('export').href = '/export_csv/endpoint_lookup?' + new URLSearchParams({q:query,mode:lookupMode});
+        byId('export').href = inventory?'/export_csv/endpoint_inventory':'/export_csv/endpoint_lookup?' + new URLSearchParams({q:query,mode:lookupMode});
+        byId('export').textContent=inventory?'Exportar lista CSV':'Exportar resultados CSV';
         byId('export').hidden = false;
       }
     } catch (error) {
@@ -199,7 +239,8 @@
   if (mode === 'endpoint') {
     byId('lookupForm').addEventListener('submit', event => { event.preventDefault(); searchEndpoint(byId('query').value.trim()); });
     byId('refresh').addEventListener('click', () => searchEndpoint(lastQuery, true));
-    if (params.get('q')) { byId('query').value = params.get('q'); searchEndpoint(params.get('q')); }
+    byId('showAll').addEventListener('click',()=>{byId('query').value='';searchEndpoint('');});
+    byId('query').value=params.get('q')||'';searchEndpoint(byId('query').value);
   } else {
     byId('interfaceForm').addEventListener('submit', event => {
       event.preventDefault();
