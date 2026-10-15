@@ -6,6 +6,8 @@ O sistema consulta os dados do APIC e não oferece ações para alterar a config
 
 ## Imagens do painel
 
+<img width="483" height="536" alt="image" src="https://github.com/user-attachments/assets/7c878e87-5ec2-44aa-a102-6fc9be805257" />
+
 <img width="1427" height="883" alt="image" src="https://github.com/user-attachments/assets/49c0225c-71bb-4815-a780-ab31941291d3" />
 
 <img width="1596" height="682" alt="image" src="https://github.com/user-attachments/assets/90faca6d-b26d-4f99-a12d-0198ec77cecc" />
