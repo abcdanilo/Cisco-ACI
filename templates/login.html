@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Entrar — Painel ACI</title><script src="/static/theme.js"></script><link rel="stylesheet" href="/static/diagnostics.css"><link rel="stylesheet" href="/static/theme.css"></head>
+<body><main style="max-width:540px;padding-top:8vh">
+<header><p class="eyebrow">PAINEL ACI</p><h1>Entrar</h1><p>Use seu usuário e senha da APIC para consultar o fabric.</p></header>
+<section class="panel">
+{% if error %}<p class="warning" role="alert">{{ error }}</p>{% endif %}
+<form method="post" action="/login" autocomplete="off" style="display:grid">
+<input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="next" value="{{ destination }}">
+<label>Usuário APIC<input name="username" required maxlength="256" autocomplete="username" autocapitalize="none" spellcheck="false" autofocus></label>
+<label>Senha<input name="password" type="password" required maxlength="4096" autocomplete="off"></label>
+<button type="submit">Entrar</button>
+</form><p class="hint">A senha é usada somente no login. A sessão expira por inatividade ou ao selecionar Sair.</p>
+<p class="hint">Se sua APIC usa um domínio de autenticação específico, informe o usuário no formato exigido por ela.</p>
+</section></main></body></html>

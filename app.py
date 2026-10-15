@@ -27,6 +27,7 @@ from aci_resources import register_resources
 from aci_bindings import register_bindings
 from aci_health import register_health
 from aci_l3out import register_l3out
+from aci_auth import Auth
 
 load_dotenv()
 
@@ -34,17 +35,14 @@ load_dotenv()
 # Config
 # ---------------------------------------------------------------------------
 APIC_URL       = os.getenv("APIC_URL", "https://apic.exemplo.com.br")
-APIC_USER      = os.getenv("APIC_USER")
-APIC_PASS      = os.getenv("APIC_PASS")
 APIC_VERIFY    = os.getenv("APIC_VERIFY", "False")
-TOKEN_TTL      = int(os.getenv("APIC_TOKEN_TTL_SEC", "300"))
+SESSION_IDLE = max(60, int(os.getenv("SESSION_IDLE_SECONDS", "1800")))
+COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "false").lower() == "true"
 DATA_CACHE_TTL = int(os.getenv("DATA_CACHE_TTL_SEC", "60"))
 APIC_PAGE_SIZE = int(os.getenv("APIC_PAGE_SIZE", "1000"))
 APIC_MAX_RETRY = int(os.getenv("APIC_MAX_RETRY", "3"))
 APIC_TIMEOUT   = int(os.getenv("APIC_TIMEOUT_SEC", "20"))
 
-if not APIC_USER or not APIC_PASS:
-    raise RuntimeError("APIC_USER e APIC_PASS devem estar definidos como variáveis de ambiente")
 
 def parse_verify(value):
     value = str(value).strip()
@@ -67,39 +65,13 @@ logger = logging.getLogger("aci-reports")
 # Flask & requests session
 # ---------------------------------------------------------------------------
 app     = Flask(__name__)
-session = requests.Session()
-session.verify = VERIFY
-
-# ---------------------------------------------------------------------------
-# Token cache (thread-safe)
-# ---------------------------------------------------------------------------
-_token_lock  = threading.Lock()
-_token_cache = {"token": None, "timestamp": 0}
+# Use independent HTTP requests; never share an APIC cookie jar across users.
+session = requests
+auth = Auth(app, APIC_URL, VERIFY, APIC_TIMEOUT, SESSION_IDLE, COOKIE_SECURE)
 
 
 def apic_login(force=False):
-    now = time.time()
-    with _token_lock:
-        if not force and _token_cache["token"] and (now - _token_cache["timestamp"] < TOKEN_TTL):
-            return _token_cache["token"]
-        url     = f"{APIC_URL}/api/aaaLogin.json"
-        payload = {"aaaUser": {"attributes": {"name": APIC_USER, "pwd": APIC_PASS}}}
-        try:
-            resp = session.post(url, json=payload,
-                                headers={"Content-Type": "application/json"},
-                                timeout=APIC_TIMEOUT)
-            resp.raise_for_status()
-        except RequestException:
-            logger.exception("Erro ao autenticar no APIC")
-            raise
-        try:
-            token = resp.json()["imdata"][0]["aaaLogin"]["attributes"]["token"]
-        except Exception:
-            raise RuntimeError("Resposta de login do APIC inesperada")
-        _token_cache["token"]     = token
-        _token_cache["timestamp"] = now
-        logger.info("Token APIC renovado")
-        return token
+    return auth.require().token
 
 
 # ---------------------------------------------------------------------------
@@ -120,40 +92,37 @@ def apic_get(path, params=None):
 
 
 def _apic_get_page(path, params):
-    token   = apic_login()
-    url     = f"{APIC_URL}{path}"
-    attempt = 0
-    while True:
-        headers = {"Cookie": f"APIC-cookie={token}"}
-        try:
-            resp = session.get(url, headers=headers, params=params, timeout=APIC_TIMEOUT)
-            if resp.status_code == 401:
-                logger.warning("Token expirado — renovando")
-                token = apic_login(force=True)
-                headers = {"Cookie": f"APIC-cookie={token}"}
-                resp = session.get(url, headers=headers, params=params, timeout=APIC_TIMEOUT)
-            resp.raise_for_status()
-            data = resp.json().get("imdata", [])
-            for item in data:
-                if "error" in item:
-                    error = item["error"].get("attributes", {})
-                    raise RuntimeError(f"APIC retornou erro {error.get('code', '')}: {error.get('text', '')}")
-            return data
-        except RequestException as exc:
-            attempt += 1
-            if attempt >= APIC_MAX_RETRY:
-                logger.exception("Falha após %d tentativas em %s", APIC_MAX_RETRY, path)
-                raise
-            wait = 2 ** attempt
-            logger.warning("Tentativa %d/%d falhou (%s). Aguardando %ds…",
-                           attempt, APIC_MAX_RETRY, exc, wait)
-            time.sleep(wait)
+    state = auth.require()
+    url = f"{APIC_URL}{path}"
+    with state.lock:
+        for attempt in range(APIC_MAX_RETRY):
+            token = apic_login()
+            try:
+                resp = session.get(url, headers={"Cookie": f"APIC-cookie={token}"},
+                                   params=params, timeout=APIC_TIMEOUT, verify=VERIFY, allow_redirects=False)
+                if resp.status_code == 401:
+                    auth.remove(state)
+                    auth.require()
+                if resp.status_code == 403:
+                    from werkzeug.exceptions import Forbidden
+                    raise Forbidden('Usuário sem permissão para consultar este recurso na APIC.')
+                if resp.is_redirect:
+                    raise RuntimeError('Redirecionamento inesperado da APIC.')
+                resp.raise_for_status()
+                data = resp.json().get("imdata", [])
+                for item in data:
+                    if "error" in item:
+                        raise RuntimeError('A APIC retornou erro ao consultar o recurso.')
+                return data
+            except RequestException:
+                if attempt+1 >= APIC_MAX_RETRY:
+                    raise RuntimeError('Falha de comunicação com a APIC.') from None
+                time.sleep(2 ** (attempt+1))
 
 
 # ---------------------------------------------------------------------------
 # Cache de dados (thread-safe, TTL configurável)
 # ---------------------------------------------------------------------------
-_data_cache: dict = {}
 _cache_lock        = threading.Lock()
 
 
@@ -167,11 +136,13 @@ def cached(key_fn=None):
     def decorator(fn):
         @wraps(fn)
         def wrapper(*args, **kwargs):
+            state = auth.require()
+            data_cache = state.cache
             key = key_fn() if key_fn else fn.__name__
             refresh = has_request_context() and request.args.get("refresh") == "1"
             now = time.time()
             with _cache_lock:
-                entry = _data_cache.get(key)
+                entry = data_cache.get(key)
                 if not refresh and entry and now - entry["ts"] < DATA_CACHE_TTL:
                     if has_request_context():
                         g.collection_warnings = getattr(g, "collection_warnings", []) + entry["warnings"]
@@ -183,8 +154,9 @@ def cached(key_fn=None):
             stamp = time.time()
             if has_request_context() and getattr(g, "report_meta", {}).get("cached"):
                 stamp = min(stamp, g.report_meta["ts"])
+            auth.require()
             with _cache_lock:
-                _data_cache[key] = {"data": result, "ts": stamp, "warnings": warnings}
+                data_cache[key] = {"data": result, "ts": stamp, "warnings": warnings}
             if has_request_context():
                 g.report_meta = {"ts": stamp, "cached": False}
             return result
@@ -195,7 +167,7 @@ def cached(key_fn=None):
 @app.route("/api/cache/clear", methods=["POST"])
 def clear_cache():
     with _cache_lock:
-        _data_cache.clear()
+        auth.require().cache.clear()
     return jsonify({"status": "ok", "message": "Cache limpo"})
 
 

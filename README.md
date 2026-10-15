@@ -2,7 +2,7 @@
 
 Aplicação web em Python e Flask para consultar um fabric Cisco ACI pela API REST do APIC. O painel permite que a equipe localize servidores, consulte portas e políticas e investigue eventos sem navegar diretamente pela interface do controlador.
 
-O sistema consulta os dados do APIC e não oferece ações para alterar a configuração do fabric. As credenciais do controlador ficam no servidor, em variáveis de ambiente ou no arquivo `.env`.
+O sistema consulta os dados do APIC e não oferece ações para alterar a configuração do fabric. Cada usuário entra com sua conta APIC. A senha é enviada ao controlador somente no login e não é armazenada pela aplicação.
 
 ## Imagens do painel
 
@@ -67,9 +67,9 @@ Edite o `.env` na raiz do projeto:
 
 ```dotenv
 APIC_URL=https://apic.exemplo.com.br
-APIC_USER=usuario_de_consulta
-APIC_PASS=preencha_localmente
 APIC_VERIFY=true
+SESSION_IDLE_SECONDS=1800
+SESSION_COOKIE_SECURE=false
 ```
 
 Os valores acima são exemplos. Não publique credenciais reais. O `.gitignore` exclui `.env`, ambientes virtuais, certificados, logs e backups ZIP. O `.env.example` é publicado sem credenciais.
@@ -77,10 +77,9 @@ Os valores acima são exemplos. Não publique credenciais reais. O `.gitignore` 
 | Variável | Finalidade | Padrão no código |
 | --- | --- | --- |
 | `APIC_URL` | URL base do controlador | `https://apic.exemplo.com.br`; substitua |
-| `APIC_USER` | Usuário APIC | Obrigatório |
-| `APIC_PASS` | Senha APIC | Obrigatório |
 | `APIC_VERIFY` | Validação TLS: `true`, `false` ou caminho da CA | `False`; o exemplo usa `true` |
-| `APIC_TOKEN_TTL_SEC` | Intervalo do controle local de renovação do token, em segundos | `300` |
+| `SESSION_IDLE_SECONDS` | Expiração sem requisições autenticadas, mínimo 60 segundos | `1800` |
+| `SESSION_COOKIE_SECURE` | Cookie enviado somente por HTTPS; use `true` em produção | `false` |
 | `DATA_CACHE_TTL_SEC` | Validade do cache de dados, em segundos | `60` |
 | `APIC_PAGE_SIZE` | Tamanho de página nas consultas paginadas ao APIC | `1000` |
 | `APIC_MAX_RETRY` | Limite configurado para tentativas de consulta | `3` |
@@ -113,9 +112,23 @@ Esses comandos fixam a porta em 8000. A execução direta de `app.py` usa `PORT`
 
 O objeto WSGI é `app:app`. Utilize o serviço WSGI e o proxy configurados no servidor. O servidor embutido do Flask (`python app.py` ou `flask run`) é destinado ao desenvolvimento.
 
-O painel **não possui login próprio de usuários**. As credenciais APIC do servidor não restringem quem acessa o painel. Disponibilize-o em rede interna com acesso controlado ou proteja-o no proxy conforme as regras do ambiente.
+O painel exige login APIC para páginas, APIs e CSVs. Configure HTTPS no proxy e `SESSION_COOKIE_SECURE=true`; para testes via HTTP local, use `false`. Remova `APIC_USER`, `APIC_PASS` e `APIC_TOKEN_TTL_SEC` do seu ambiente de implantação: não são mais utilizados. A atualização não modifica automaticamente seu `.env`.
+
+**Execute com um único processo WSGI** (threads são permitidas). Tokens APIC e caches ficam em memória, isolados por sessão. Múltiplos workers ou réplicas não compartilham essas sessões; reiniciar o processo encerra todos os logins. Exemplo Linux, após instalar Gunicorn no ambiente virtual:
+
+```bash
+.venv/bin/gunicorn --workers 1 --threads 8 --bind 127.0.0.1:8000 app:app
+```
+
+O navegador recebe apenas um identificador aleatório em cookie `HttpOnly` e `SameSite=Lax`. A aplicação não guarda a senha em arquivos, cookies ou armazenamento do navegador. A APIC determina as permissões de cada conta. O token é renovado enquanto a sessão é usada; rejeição ou falha na renovação exige novo login.
+
+Use **Sair** para encerrar explicitamente a sessão. O padrão de inatividade é 30 minutos sem requisições autenticadas; atualizações automáticas da página também contam como atividade. O cookie não é persistente, mas navegadores com restauração de sessão podem restaurá-lo. O aplicativo não controla o gerenciador de senhas do navegador.
 
 ## Como usar
+
+### Entrar
+
+Abra o painel e informe seu usuário e senha APIC. Se necessário, use o formato de usuário exigido pelo domínio de autenticação do controlador. Após autenticar, o painel abre a página solicitada. Caracteres como `#` e `!` são enviados integralmente, sem a interpretação de um arquivo `.env`.
 
 ### Página inicial
 
@@ -212,6 +225,7 @@ Os CSVs têm proteção contra interpretação de células como fórmulas. Se o 
 | `aci_vlan_sources.py` | Ampliação de VLANs por origem: AEP, VMM, deployment dinâmico e interfaces L3Out |
 | `aci_history.py` | Consultas paginadas de eventos e auditoria |
 | `aci_resources.py` | CPU, memória e armazenamento dos controladores APIC |
+| `aci_auth.py` | Login/logout, expiração e isolamento de sessões e tokens APIC |
 | `aci_health.py` | Saúde e contagem de faults por tenant; CPU de Leafs/Spines |
 | `templates/` | Páginas HTML e templates Jinja |
 | `static/` | CSS e JavaScript das telas, filtros, indicadores e temas |
@@ -289,7 +303,8 @@ A execução manual documentada não usa recarga automática. **Ctrl+F5 sozinho 
 | --- | --- |
 | Página não abre | Processo ativo, porta e endereço; `127.0.0.1` acessa somente a própria máquina |
 | Porta 8000 em uso | Outra instância ativa; encerre o processo correto antes de iniciar novamente |
-| `APIC_USER e APIC_PASS devem estar definidos` | Variáveis obrigatórias, `.env` e ambiente do processo |
+| Login recusado / HTTP 401 | Confira usuário, senha e domínio de autenticação da APIC; entre novamente se a sessão expirou |
+| Retorno contínuo à tela de login | Em HTTP local, use `SESSION_COOKIE_SECURE=false`; execute somente um processo WSGI |
 | Página abre, mas dados falham | URL APIC, rede, credenciais, permissões, certificado e erro no terminal |
 | Erro de certificado | CA confiável e `APIC_VERIFY` |
 | Menu antigo após Ctrl+F5 | Reinício da aplicação e diretório usado para iniciá-la |

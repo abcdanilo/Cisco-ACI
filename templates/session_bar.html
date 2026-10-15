@@ -1,0 +1,4 @@
+<aside id="aciSessionBar" style="display:flex;gap:12px;align-items:center;justify-content:flex-end;padding:12px 24px;border-top:1px solid var(--border,#aaa);font:14px system-ui">
+<span>Usuário: {{ username }}</span>
+<form action="/logout" method="post" style="margin:0"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button type="submit">Sair</button></form>
+</aside>
