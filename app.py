@@ -28,6 +28,9 @@ from aci_bindings import register_bindings
 from aci_health import register_health
 from aci_l3out import register_l3out
 from aci_auth import Auth
+from aci_port_checklist import register_checklist
+from aci_contracts import register_contract_relations
+from aci_border_leafs import register_border_leafs
 
 load_dotenv()
 
@@ -1138,6 +1141,9 @@ register_portchannels(app, lambda *args, **kwargs: apic_get(*args, **kwargs),
                       cached, _json_route, collection_warning)
 
 register_access(app, lambda *args, **kwargs: apic_get(*args, **kwargs), cached, _json_route, collection_warning)
+register_checklist(app, lambda *args, **kwargs: apic_get(*args, **kwargs), cached, _json_route)
+register_contract_relations(app, lambda *args, **kwargs: apic_get(*args, **kwargs), cached, _json_route)
+register_border_leafs(app, lambda *args, **kwargs: apic_get(*args, **kwargs), cached, _json_route)
 
 register_history(app, lambda *args, **kwargs: _apic_get_page(*args, **kwargs), _json_route)
 register_resources(app, lambda *args, **kwargs: apic_get(*args, **kwargs), cached, _json_route, collection_warning)

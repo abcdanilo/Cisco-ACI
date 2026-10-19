@@ -1,0 +1,15 @@
+{% extends "diagnostics_base.html" %}
+{% block title %}Relações de contratos — ACI{% endblock %}
+{% block scripts %}<script src="/static/contract-relations.js" defer></script>{% endblock %}
+{% block content %}
+<header><p class="eyebrow">POLÍTICAS & FABRIC</p><h1>Relações de contratos</h1><p>Quem fornece, quem consome e quais filtros estão configurados. Expanda um contrato para consultar seus subjects e regras.</p></header>
+<section class="panel"><form id="contractForm">
+<label>Tenant do contrato ou participante<select id="tenant"><option value="">Todos</option></select></label>
+<label style="flex:1">Pesquisar contrato, EPG, filtro, protocolo ou porta<input id="query" type="search" placeholder="Nome, DN, tcp, 443…"></label>
+<button type="button" id="refresh">Atualizar dados</button><button type="button" id="clear" class="secondary">Limpar filtros</button>
+</form></section>
+<p id="status" role="status">Consultando contratos…</p>
+<p id="warnings" class="warning" hidden></p><p id="scope" class="hint"></p>
+<p><a href="/contracts">Abrir relatório de contratos</a></p>
+<div id="results"></div><button id="more" class="secondary" hidden>Mostrar mais contratos</button>
+{% endblock %}

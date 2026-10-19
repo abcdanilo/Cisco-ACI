@@ -153,6 +153,16 @@ Vizinhos são consultados em `lldpAdjEp` e `cdpAdjEp` e associados pelo DN compl
 
 ### Interfaces e grupos de portas
 
+Em **Detalhamento e Tráfego**, o checklist verifica a cadeia de seletores convencionais, Policy Group, AEP, domínios e VLANs de bindings estáticos diretos. Cada etapa mostra OK, Inconsistência ou Não verificado e os DNs usados. PC/vPC tem verificação até o AEP; bindings do caminho lógico, VMM, FEX e breakout não são validados integralmente. API: `/api/port_checklist?dn=...`.
+
+### Relações de contratos
+
+Em **Políticas & Fabric → Relações de contratos**, consulte contratos com seus fornecedores e consumidores, incluindo External EPGs e relações explícitas de vzAny. Filtre por tenant do contrato ou participante e pesquise nomes, DNs, filtros, protocolos e portas. Expanda um contrato para consultar subjects, opções de direção, ações, entradas dos filtros e atributos retornados pela APIC. A lista apresenta 30 resultados por vez, com botão para carregar mais.
+
+Contratos com nomes iguais em tenants diferentes permanecem separados. Destinos informados por DN têm prioridade; correlações por nome são sinalizadas, e casos ambíguos permanecem não resolvidos. Falhas de consulta aparecem como cobertura incompleta. A ausência de participantes não comprova que um contrato esteja sem uso. A tela não calcula permissão efetiva de tráfego nem avalia integralmente herança, contratos importados, taboo, preferred groups, exceções, escopo de VRF ou hardware. API: `/api/contract_relations`; cache isolado por sessão e atualização pelo botão **Atualizar dados**.
+
+### Consultas de interfaces
+
 - **Todas as Interfaces:** inclui interfaces administrativamente habilitadas e desabilitadas, separando estado administrativo de operacional.
 - **Detalhamento e Tráfego:** recebe pod, node e interface ou o DN de uma porta. Mostra as últimas estatísticas disponíveis de cinco minutos, não tráfego em tempo real. Ausência de amostra não significa tráfego zero.
 - **VPC Ports:** reúne os lados de um grupo lógico, mantendo port-channel, estado e membros por node. Os números de port-channel podem ser diferentes entre os peers.
@@ -162,6 +172,8 @@ Vizinhos são consultados em `lldpAdjEp` e `cdpAdjEp` e associados pelo DN compl
 A visão vPC distingue associação confirmada por membros físicos de correlação por nome exato + pod/node do caminho lógico. Correlações ficam sinalizadas e ambiguidades não são forçadas. “Parcial” descreve o mapeamento, não a saúde do protocolo vPC. O localizador de servidores usa somente associações físicas confirmadas para apresentar membros de bundles.
 
 ### L3Out e Bridge Domains
+
+Em **Conectividade L3Out → L3Outs por leaf**, consulte as associações de node agrupadas por pod/node, com nome e estado do switch quando disponíveis. Cada L3Out mostra tenant, VRF, protocolos configurados, node profile, Router ID, caminhos de interfaces e rotas estáticas com next hops. A busca aceita nome, protocolo, endereço, interface ou prefixo, além dos filtros de tenant, pod e node. A tela apresenta 15 nodes por vez; as configurações sem associação completa ficam em seção própria da coleta integral, independente dos filtros. Protocolos configurados não comprovam vizinhança ativa e rotas estáticas não comprovam encaminhamento. Interfaces são associadas pelo caminho e pelo mesmo node profile, preservando pod e os dois nodes de caminhos vPC. API: `/api/l3out_by_leaf`.
 
 Em **Consultar L3Out**, selecione tenant e L3Out e refine a busca. As opções vêm do APIC e podem incluir grupos sem prefixos.
 

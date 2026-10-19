@@ -1,7 +1,7 @@
 {% extends "diagnostics_base.html" %}
 {% block title %}Detalhamento de interface — ACI{% endblock %}
 {% block page %}interface{% endblock %}
-{% block scripts %}<script src="/static/object-faults.js" defer></script><script src="/static/diagnostics.js" defer></script>{% endblock %}
+{% block scripts %}<script src="/static/object-faults.js" defer></script><script src="/static/port-checklist.js" defer></script><script src="/static/diagnostics.js" defer></script>{% endblock %}
 {% block content %}
 
 <header><p class="eyebrow">INTERFACES / DIAGNÓSTICO</p><h1>Detalhamento de interface</h1><p>Estado administrativo e operacional, velocidade e tráfego da interface física.</p></header>
@@ -22,6 +22,11 @@
   <div id="statistics" class="stats-grid"></div>
   <p class="hint">“Indisponível” significa que o APIC não forneceu a medição. Contadores acumulados podem ser reiniciados pelo equipamento e não são totais dos cinco minutos.</p>
 </section>
+<section class="panel" id="portChecklist" hidden aria-label="Checklist de configuração da porta">
+<h2>Checklist de configuração da porta</h2>
+<p class="muted">Interface → seletor → Policy Group → AEP → domínio → VLAN do EPG. Somente consulta; não comprova tráfego.</p>
+<p id="portChecklistStatus" role="status"></p><p id="portChecklistScope" class="hint"></p>
+<div id="portChecklistItems"></div></section>
 <section class="panel" id="objectFaultPanel" hidden><h2>Falhas relacionadas</h2>
 <p class="muted">Objeto e descendentes identificados pelo DN. Inclui registros cleared; não inclui automaticamente falhas de políticas compartilhadas ou de outros objetos.</p>
 <p id="objectFaultStatus" role="status"></p><div id="objectFaultList"></div></section>

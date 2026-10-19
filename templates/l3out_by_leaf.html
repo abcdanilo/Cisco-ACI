@@ -1,0 +1,17 @@
+{% extends "diagnostics_base.html" %}
+{% block title %}L3Outs por leaf — ACI{% endblock %}
+{% block scripts %}<script src="/static/l3out-by-leaf.js" defer></script>{% endblock %}
+{% block content %}
+<header><p class="eyebrow">CONECTIVIDADE L3OUT</p><h1>L3Outs por leaf</h1><p>Conexões externas configuradas em cada switch. Expanda um L3Out para consultar interfaces e rotas estáticas.</p></header>
+<section class="panel"><form id="filters">
+<label>Tenant<select id="tenant"><option value="">Todos</option></select></label>
+<label>Pod<select id="pod"><option value="">Todos</option></select></label>
+<label>Node<select id="node"><option value="">Todos</option></select></label>
+<label style="flex:1">Pesquisar leaf, L3Out, VRF, protocolo, porta ou prefixo<input id="query" type="search"></label>
+<button type="button" id="refresh">Atualizar dados</button><button type="button" id="clear" class="secondary">Limpar filtros</button>
+</form></section>
+<p id="status" role="status">Consultando L3Outs…</p><p id="warnings" class="warning" hidden></p><p id="scope" class="hint"></p>
+<p><a href="/l3out_explorer">Consultar prefixos e rotas por tenant</a></p>
+<div id="results"></div><button id="more" class="secondary" hidden>Mostrar mais leafs</button>
+<details id="unmapped" class="panel" hidden><summary id="unmappedTitle"></summary><p class="hint">Lista da coleta completa, independente dos filtros acima.</p><div id="unmappedItems"></div></details>
+{% endblock %}
