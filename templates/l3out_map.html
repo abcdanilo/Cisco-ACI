@@ -1,0 +1,14 @@
+{% extends "diagnostics_base.html" %}
+{% block title %}Mapa de L3Out — ACI{% endblock %}
+{% block scripts %}<script src="/static/l3out-map.js" defer></script><link rel="stylesheet" href="/static/l3out-map.css">{% endblock %}
+{% block content %}
+<header><p class="eyebrow">CONECTIVIDADE / VISÃO HIERÁRQUICA</p><h1>Mapa de L3Out</h1><p>Explore o contexto de VRF e os objetos dentro de cada L3Out.</p></header>
+<section class="panel"><form id="mapFilters">
+<label>Tenant<select id="tenant"><option value="">Todos</option></select></label>
+<label>Pesquisar L3Out, VRF, node ou endereço<input id="searchMap" type="search"></label>
+<label style="flex:1">L3Out<select id="out"></select></label>
+<button id="refresh" type="button">Atualizar dados</button><button id="printMap" type="button" class="secondary">Imprimir / PDF</button>
+</form></section>
+<p id="status" role="status">Consultando configuração…</p><p id="scope" class="hint"></p>
+<div id="map"></div>
+{% endblock %}

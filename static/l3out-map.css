@@ -1,0 +1,20 @@
+.map-layout{display:grid;grid-template-columns:minmax(0,2fr) minmax(270px,1fr);gap:24px;margin-top:24px;align-items:start}.map-box{border:1px solid var(--border);border-radius:18px;background:var(--surface);padding:18px;margin:12px 0;min-width:0;overflow-wrap:anywhere}.map-kind{color:var(--map-accent,var(--blue));font:11px ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase;margin:0 0 5px}.map-box h2,.map-box h3{margin:0 0 12px}.map-path{border:1px solid var(--border);border-radius:10px;padding:12px;margin:12px 0;background:var(--surface2);overflow-wrap:anywhere}.map-address{color:var(--green);font:15px ui-monospace,monospace}.map-note{color:var(--orange);font-size:13px}.map-box details{margin-top:12px}.map-box summary{cursor:pointer;color:var(--map-accent,var(--blue))}#mapFilters label{min-width:0;max-width:100%}#mapFilters select{max-width:100%}@media(max-width:800px){.map-layout{grid-template-columns:1fr}.map-box{padding:12px}}
+/* Colors identify object levels, never operational health. */
+.map-box[data-level=tenant]{--map-accent:#c4a1ff;--map-fill:#211b32}
+.map-box[data-level=vrf]{--map-accent:#74c2ff;--map-fill:#152536}
+.map-box[data-level=l3out]{--map-accent:#f3bb69;--map-fill:#302418}
+.map-box[data-level=node]{--map-accent:#6bd8ce;--map-fill:#132b2c}
+.map-box[data-level=interface]{--map-accent:#a9d878;--map-fill:#222d1b}
+.map-box[data-level=epg]{--map-accent:#f4a0cf;--map-fill:#321d2c}
+.map-box[data-level=external]{--map-accent:#ffb18f;--map-fill:#33231e}
+:root[data-theme=light] .map-box[data-level=tenant]{--map-accent:#7542a8;--map-fill:#f4edff}
+:root[data-theme=light] .map-box[data-level=vrf]{--map-accent:#21629a;--map-fill:#edf5ff}
+:root[data-theme=light] .map-box[data-level=l3out]{--map-accent:#89540b;--map-fill:#fff5e3}
+:root[data-theme=light] .map-box[data-level=node]{--map-accent:#126e66;--map-fill:#e9f8f5}
+:root[data-theme=light] .map-box[data-level=interface]{--map-accent:#426b1e;--map-fill:#f0f8e8}
+:root[data-theme=light] .map-box[data-level=epg]{--map-accent:#9b356e;--map-fill:#fceef6}
+:root[data-theme=light] .map-box[data-level=external]{--map-accent:#9b4825;--map-fill:#fff0e9}
+.map-box[data-level]{background:var(--map-fill);border-color:var(--map-accent);border-left-width:4px}
+.map-box[data-level]>.map-kind{font-weight:700}
+
+@media print{nav,#mapFilters,#aciSessionBar,.aci-theme-bar,header,.hint,#status{display:none!important}.map-layout{display:block}.map-box{background:white!important;color:black!important;break-inside:avoid;border-color:#555!important}body{background:white!important;color:black!important}main{padding:0}.map-address,.map-kind,.map-note{color:black!important}}

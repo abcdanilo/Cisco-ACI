@@ -20,6 +20,8 @@ O sistema consulta os dados do APIC e não oferece ações para alterar a config
 
 ## Funcionalidades
 
+- **Operacional → Topologia Leaf / Spine:** mapa com spines acima e leafs abaixo, filtro de pod, destaque por nome/node e detalhes de switches e enlaces. Usa `fabricNode`, `fabricLink` e LLDP correlacionado por nome exato e único. Nós sem enlaces retornados continuam visíveis; registros externos ou ambíguos não geram linhas. Linhas contínuas têm evidência de `fabricLink`; tracejadas são somente LLDP. Enlaces paralelos são preservados, e a lista de evidências permite consultar as portas de cada um. O mapa não comprova saúde operacional nem presume malha completa. API: `/api/fabric_map`, com cache por sessão.
+
 - Busca de endpoints por IP, MAC ou parte do nome/descrição.
 - Interfaces físicas com estado administrativo, estado operacional e velocidade.
 - Detalhamento de portas e estatísticas de tráfego disponíveis no APIC.
@@ -122,7 +124,7 @@ O painel exige login APIC para páginas, APIs e CSVs. Configure HTTPS no proxy e
 .venv/bin/gunicorn --workers 1 --threads 8 --bind 127.0.0.1:8000 app:app
 ```
 
-O navegador recebe apenas um identificador aleatório em cookie `HttpOnly` e `SameSite=Lax`. A aplicação não guarda a senha em arquivos, cookies ou armazenamento do navegador. A APIC determina as permissões de cada conta. O token é renovado enquanto a sessão é usada; rejeição ou falha na renovação exige novo login.
+O navegador recebe apenas um identificador aleatório em cookie `HttpOnly` e `SameSite=Lax`. A aplicação não guarda a senha em arquivos, cookies ou armazenamento do navegador. A APIC determina as permissões de cada conta. O token é renovado em segundo plano antes do prazo informado pela APIC, enquanto a sessão estiver dentro do limite de inatividade. Essa renovação não altera o horário da última atividade do usuário. Rejeição, revogação, limite máximo da APIC ou falha na renovação ainda podem exigir novo login.
 
 Use **Sair** para encerrar explicitamente a sessão. O padrão de inatividade é 30 minutos sem requisições autenticadas; atualizações automáticas da página também contam como atividade. O cookie não é persistente, mas navegadores com restauração de sessão podem restaurá-lo. O aplicativo não controla o gerenciador de senhas do navegador.
 
@@ -172,6 +174,8 @@ Contratos com nomes iguais em tenants diferentes permanecem separados. Destinos 
 A visão vPC distingue associação confirmada por membros físicos de correlação por nome exato + pod/node do caminho lógico. Correlações ficam sinalizadas e ambiguidades não são forçadas. “Parcial” descreve o mapeamento, não a saúde do protocolo vPC. O localizador de servidores usa somente associações físicas confirmadas para apresentar membros de bundles.
 
 ### L3Out e Bridge Domains
+
+Em **Conectividade L3Out → Mapa de L3Out**, visualize caixas aninhadas com tenant, contexto de VRF, L3Out, node profiles, nodes e perfis de interface. Escolha um L3Out e filtre por tenant ou texto. Os endereços de interface e membros A/B vêm dos atributos da APIC; não há inferência de VIP nem associação automática de membro A/B a node. A coluna externa mostra next hops com prefixo, node e profile de origem. External EPGs mostram prefixos e relações diretas de contratos. O mapa não identifica automaticamente firewalls, localização ou membros de cluster. **Imprimir / PDF** usa a impressão do navegador; expanda os detalhes desejados antes de imprimir. API: `/api/l3out_map`, com cache por sessão.
 
 Em **Conectividade L3Out → L3Outs por leaf**, consulte as associações de node agrupadas por pod/node, com nome e estado do switch quando disponíveis. Cada L3Out mostra tenant, VRF, protocolos configurados, node profile, Router ID, caminhos de interfaces e rotas estáticas com next hops. A busca aceita nome, protocolo, endereço, interface ou prefixo, além dos filtros de tenant, pod e node. A tela apresenta 15 nodes por vez; as configurações sem associação completa ficam em seção própria da coleta integral, independente dos filtros. Protocolos configurados não comprovam vizinhança ativa e rotas estáticas não comprovam encaminhamento. Interfaces são associadas pelo caminho e pelo mesmo node profile, preservando pod e os dois nodes de caminhos vPC. API: `/api/l3out_by_leaf`.
 

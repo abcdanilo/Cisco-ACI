@@ -1,0 +1,13 @@
+{% extends "diagnostics_base.html" %}
+{% block title %}Topologia Leaf / Spine — ACI{% endblock %}
+{% block scripts %}<script src="/static/fabric-map.js" defer></script><link rel="stylesheet" href="/static/fabric-map.css">{% endblock %}
+{% block content %}
+<header><p class="eyebrow">OPERACIONAL / FABRIC</p><h1>Topologia Leaf / Spine</h1><p>Spines na faixa superior e leafs na inferior. Selecione um switch ou enlace para ver seus detalhes.</p></header>
+<section class="panel"><form id="filters"><label>Pod<select id="pod"><option value="">Todos</option></select></label><label>Destacar switch<input id="query" type="search" placeholder="Nome ou node"></label><button id="refresh" type="button">Atualizar dados</button><button id="reset" class="secondary" type="button">Limpar destaque</button></form></section>
+<p id="status" role="status"></p><p id="warning" class="warning" hidden></p><p id="scope" class="hint"></p>
+<p class="hint"><span class="spine-key">■ Spine</span> · <span class="leaf-key">■ Leaf</span> · Linha contínua: fabricLink · Tracejada: somente LLDP. As cores representam o papel do switch.</p>
+<div id="canvas" tabindex="0" aria-label="Mapa do fabric com rolagem horizontal"></div>
+<section id="selection" class="panel" aria-live="polite"><h2>Detalhes</h2><p>Selecione um objeto no mapa.</p></section>
+<details class="panel"><summary>Lista de enlaces e evidências</summary><div id="links"></div></details>
+<details id="unresolved" class="panel" hidden><summary id="unresolvedTitle"></summary><div id="unresolvedItems"></div></details>
+{% endblock %}

@@ -31,6 +31,8 @@ from aci_auth import Auth
 from aci_port_checklist import register_checklist
 from aci_contracts import register_contract_relations
 from aci_border_leafs import register_border_leafs
+from aci_topology import register_topology
+from aci_fabric_map import register_fabric_map
 
 load_dotenv()
 
@@ -1144,6 +1146,8 @@ register_access(app, lambda *args, **kwargs: apic_get(*args, **kwargs), cached, 
 register_checklist(app, lambda *args, **kwargs: apic_get(*args, **kwargs), cached, _json_route)
 register_contract_relations(app, lambda *args, **kwargs: apic_get(*args, **kwargs), cached, _json_route)
 register_border_leafs(app, lambda *args, **kwargs: apic_get(*args, **kwargs), cached, _json_route)
+register_topology(app, lambda *args, **kwargs: apic_get(*args, **kwargs), cached, _json_route)
+register_fabric_map(app, lambda *args, **kwargs: apic_get(*args, **kwargs), cached, _json_route)
 
 register_history(app, lambda *args, **kwargs: _apic_get_page(*args, **kwargs), _json_route)
 register_resources(app, lambda *args, **kwargs: apic_get(*args, **kwargs), cached, _json_route, collection_warning)

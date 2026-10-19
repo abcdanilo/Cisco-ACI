@@ -2,6 +2,7 @@
 import secrets
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urlsplit
 
 import requests
@@ -17,6 +18,7 @@ class LoginSession:
         self.token = ''
         self.seen = time.monotonic()
         self.refresh_at = 0
+        self.refresh_pending = False
         self.valid = True
         self.lock = threading.RLock()
         self.cache = {}
@@ -30,6 +32,7 @@ class Auth:
         self.idle_seconds, self.secure = idle_seconds, secure
         self.sessions = {}
         self.lock = threading.RLock()
+        self.refresh_pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix='aci-token-refresh')
         app.config['MAX_CONTENT_LENGTH'] = 16 * 1024
         app.before_request(self.guard)
         app.after_request(self.finish)
@@ -39,17 +42,70 @@ class Auth:
 
     def sweep(self):
         while True:
-            time.sleep(30)
-            self.expire()
+            time.sleep(5)
+            self.maintain()
+
+    def maintain(self):
+        """Keep APIC tokens alive only inside the user's existing idle window."""
+        self.expire()
+        with self.lock:
+            states = list(self.sessions.values())
+        jobs = []
+        for state in states:
+            # A busy request owns its token lock; do not delay other users.
+            if not state.lock.acquire(blocking=False):
+                continue
+            try:
+                if state.valid and state.token and not state.refresh_pending and time.monotonic() >= state.refresh_at:
+                    state.refresh_pending = True
+                    jobs.append(self.refresh_pool.submit(self.background_refresh, state))
+            finally:
+                state.lock.release()
+        return jobs
+
+    def background_refresh(self, state):
+        try:
+            self.refresh_if_due(state)
+        finally:
+            with state.lock:
+                state.refresh_pending = False
+
+    def refresh_if_due(self, state):
+        """Serialize token rotation with queries/logout, without updating seen."""
+        with state.lock:
+            now = time.monotonic()
+            if not state.valid or not state.token:
+                return False
+            if now-state.seen >= self.idle_seconds:
+                self.remove(state)
+                return False
+            if now < state.refresh_at:
+                return True
+            try:
+                response = requests.get(self.url+'/api/aaaRefresh.json', headers={'Cookie':'APIC-cookie='+state.token},
+                                        verify=self.verify, timeout=self.timeout, allow_redirects=False)
+                self.accept_token(state, response)
+            except Exception:
+                self.remove(state)
+                return False
+            # A slow renewal must not extend the idle deadline either.
+            if time.monotonic()-state.seen >= self.idle_seconds:
+                self.remove(state)
+                return False
+            return True
 
     def expire(self):
         now = time.monotonic()
         with self.lock:
             expired = [s for s in self.sessions.values() if now-s.seen >= (self.idle_seconds if s.token else 300)]
         for state in expired:
-            with state.lock:
+            if not state.lock.acquire(blocking=False):
+                continue
+            try:
                 if time.monotonic()-state.seen >= (self.idle_seconds if state.token else 300):
                     self.remove(state)
+            finally:
+                state.lock.release()
 
     def create(self):
         self.expire()
@@ -125,14 +181,8 @@ class Auth:
             if request.method not in ('GET', 'HEAD', 'OPTIONS') and not self.csrf_valid(state):
                 return jsonify(error='Validação da sessão inválida. Atualize a página.'), 403
             state.seen = time.monotonic()
-            if request.path != '/logout' and state.seen >= state.refresh_at:
-                try:
-                    response = requests.get(self.url+'/api/aaaRefresh.json', headers={'Cookie':'APIC-cookie='+state.token},
-                                            verify=self.verify, timeout=self.timeout, allow_redirects=False)
-                    self.accept_token(state, response)
-                except Exception:
-                    self.remove(state)
-                    return self.denied()
+            if request.path != '/logout' and not self.refresh_if_due(state):
+                return self.denied()
 
     def accept_token(self, state, response):
         if response.status_code != 200:
@@ -143,7 +193,7 @@ class Auth:
             raise ValueError('Invalid token')
         seconds = max(1, min(int(data.get('refreshTimeoutSeconds', 300)), 86400))
         state.token = token
-        state.refresh_at = time.monotonic()+seconds*0.75
+        state.refresh_at = time.monotonic()+seconds*0.5
 
     def login(self):
         state = self.current()
